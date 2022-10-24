@@ -1,0 +1,2 @@
+class InvalidDNSEntry(Exception):
+    pass
