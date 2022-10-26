@@ -10,18 +10,31 @@ class ConfigType(Enum):
     LG = 5
 
 class ServerConfig:
+    
+    class ServerData:
+        def __init__(self,fullIp:str):
+            self.port=None
+            if ':' in fullIp:
+                ip,port=fullIp.split(':')
+                self.port=port
+                self.ip=ip  
+            else:
+                self.ip=fullIp
+            
+    
     def __init__(self, filePath):
-        self.primaryDomains = {}
+        self.primaryDomains = {}#domain:serverData
         self.topServers = []
-        self.logFile = ""
-        self.authorizedSS = {}
-        self.defaultServers = {}
+        self.logFile = None
+        self.especificLogFiles = {} # domain:file
+        self.authorizedSS = {}#domain:serverData
+        self.defaultServers = {}#domain:serverData
 
         try:
             with open(filePath, "r") as file:
-                data = file.read()
+                lines = file.readlines()
 
-                for line in data.split('\n'):
+                for line in lines:
                     self.__parseLine__(line)
 
         except FileNotFoundError:
@@ -31,36 +44,68 @@ class ServerConfig:
         if line == "":
             return
 
-        if line[0] == '#':
+        if line.startswith('#'):
             return
 
         types = [member.name for member in ConfigType]
-        split = line.split()
+        args = line.split()
 
-        if len(split) == 3:
+        if len(args) == 3:
+            domain,valueType,data=args
             try:
-                lineType = ConfigType(types.index(split[1]))
+                lineType = ConfigType(types.index(valueType))
+                
 
                 if lineType == ConfigType.DB:
-                    self.__parse_db__(split)
+                    self.__parse_db__(domain,data)
                 elif lineType == ConfigType.SP:
-                    self.__parse_sp__(split)
+                    self.__parse_sp__(domain,data)
                 elif lineType == ConfigType.SS:
-                    self.__parse_ss__(split)
+                    self.__parse_ss__(domain,data)
                 elif lineType == ConfigType.DD:
-                    self.__parse_dd__(split)
+                    self.__parse_dd__(domain,data)
                 elif lineType == ConfigType.ST:
-                    self.__parse_st__(split)
+                    self.__parse_st__(domain,data)
                 elif lineType == ConfigType.LG:
-                    self.__parse_lg__(split)
+                    self.__parse_lg__(domain,data)
             except ValueError:
                 raise InvalidConfigFileException(line + "has no valid type")
         else:
             raise InvalidConfigFileException(line + " contains more than 3 words")
 
 
-    def __parse__db__(self, split):
-        return
+    def __parse__db__(self,domain,data):
+        #TODO: dar parse do ficheiro q esta em data
+        pass
+    def __parse_sp__(self,domain,data):
+        if domain in self.primaryDomains:
+            raise InvalidConfigFileException(f"duplicated primary server in {domain} domain")
+        self.primaryDomains[domain]=ServerData(data)
+    def __parse_ss__(self,domain,data):
+        if domain not in self.authorizedSS:
+            self.authorizedSS[domain]=[]
+        self.authorizedSS[domain].append(ServerData(data))
+    def __parse_dd__(self,domain,data):
+        if domain not in self.defaultServers:
+            self.defaultServers[domain]=[]
+        self.defaultServers[domain].append(ServerData(data))
+    def __parse_st__(self,domain,data):
+        if 'root' != domain:
+            raise InvalidConfigFileException(f"ST parameter was {domain} expected root")
+        #TODO: dar parse do ficheiro q esta em data
+    def __parse_lg__(self,domain,data):
+        if domain == 'all':
+            self.logFile=data
+        elif domain in self.especificLogFiles:
+            raise InvalidConfigFileException(f"duplicated log files in {domain} domain")
+        elif domain not in self.authorizedSS and domain not in self.primaryDomains:
+            raise InvalidConfigFileException(f"log files for non existing domain {domain}")
+        else:
+            self.especificLogFiles[domain]=data
+    
+    
+    
+    
 
     def __validate_entry__(self):
         return None
