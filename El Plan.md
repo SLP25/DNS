@@ -235,4 +235,6 @@ The data is a 16-bit integer corresponding to the number of the entry, and a DNS
 3. Alignment on packets
 4. What security information on SS?
 5. How to handle subdomains?
-
+6. Which DNS records do we have to send?
+7. How to determine if we are the first server
+8. How to handle colisions

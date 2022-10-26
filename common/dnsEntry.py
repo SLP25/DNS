@@ -1,5 +1,5 @@
 from enum import Enum
-from exceptions import InvalidDNSEntry
+from exceptions import InvalidDNSEntryException
 
 class EntryType(Enum):
     SOASP = 0
@@ -17,11 +17,11 @@ class EntryType(Enum):
 class DNSEntry:
     def __init__(self, data, fromFile = False):
         if fromFile:
-            self.__init_from_file(data)
+            self.__init_from_file__(data)
         else:
-            self.__init_from_bytes(data)
+            self.__init_from_bytes__(data)
 
-    def __init_from_file(self, str):
+    def __init_from_file__(self, str):
         types = [member.name for member in EntryType]
         split = str.split()
 
@@ -33,25 +33,25 @@ class DNSEntry:
             try:
                 self.type = EntryType(types.index(split[1]))
             except ValueError:
-                raise InvalidDNSEntry("Unknown entry type")
+                raise InvalidDNSEntryException("Unknown entry type")
 
             try:
                 self.ttl = int(split[3])
                 self.priority = 0 if len(split) == 4 else int(split[4])
             except ValueError:
-                raise InvalidDNSEntry("Priority and TTL must be integers")
+                raise InvalidDNSEntryException("Priority and TTL must be integers")
         else:
-            raise InvalidDNSEntry("Line has more than 4/5 words")
+            raise InvalidDNSEntryException("Line has more than 4/5 words")
 
         self.__validate_entry()
 
-    def __init_from_bytes(self, bytes):
+    def __init_from_bytes__(self, bytes):
         return
 
-    def __validate_entry(self):
+    def __validate_entry__(self):
         return None
 
-    def to_bytes(self):
+    def to_bytes__(self):
         return []
 
     def __str__(self):
