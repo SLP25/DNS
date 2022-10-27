@@ -1,5 +1,6 @@
 from enum import Enum
 from exceptions import NoConfigFileException
+from ..common.dnsEntry import DNSEntry
 
 class ConfigType(Enum):
     DB = 0
@@ -10,21 +11,13 @@ class ConfigType(Enum):
     LG = 5
 
 class ServerConfig:
-    
-    class ServerData:
-        def __init__(self,fullIp:str):
-            self.port=None
-            if ':' in fullIp:
-                ip,port=fullIp.split(':')
-                self.port=port
-                self.ip=ip  
-            else:
-                self.ip=fullIp
+
             
     
     def __init__(self, filePath):
         self.primaryDomains = {}#domain:serverData
-        self.topServers = []
+        self.dnsEntries = {}#domain:DNSEntry
+        self.topServers = [] #ips
         self.logFile = None
         self.especificLogFiles = {} # domain:file
         self.authorizedSS = {}#domain:serverData
@@ -75,24 +68,36 @@ class ServerConfig:
 
 
     def __parse__db__(self,domain,data):
-        #TODO: dar parse do ficheiro q esta em data
-        pass
+        if domain in self.dnsEntries:
+            raise InvalidConfigFileException(f"duplicated dns entry in {domain} domain")
+        try:
+            with open(filepath,'r') as file:
+                lines=file.readLines()#this way we can get a list of all lines
+        except:
+             raise InvalidConfigFileException(f"invalid file {data}")
+        self.dnsEntries[domain]=[DNSEntry(line,fromFile=True) for line in lines]
+        
+
     def __parse_sp__(self,domain,data):
         if domain in self.primaryDomains:
             raise InvalidConfigFileException(f"duplicated primary server in {domain} domain")
-        self.primaryDomains[domain]=ServerData(data)
+        self.primaryDomains[domain]=data
     def __parse_ss__(self,domain,data):
         if domain not in self.authorizedSS:
             self.authorizedSS[domain]=[]
-        self.authorizedSS[domain].append(ServerData(data))
+        self.authorizedSS[domain].append(data)
     def __parse_dd__(self,domain,data):
         if domain not in self.defaultServers:
             self.defaultServers[domain]=[]
-        self.defaultServers[domain].append(ServerData(data))
+        self.defaultServers[domain].append(data)
     def __parse_st__(self,domain,data):
         if 'root' != domain:
             raise InvalidConfigFileException(f"ST parameter was {domain} expected root")
-        #TODO: dar parse do ficheiro q esta em data
+        try:
+            with open(data,'r') as file:
+                self.topServers+=file.readlines()
+        except:
+             raise InvalidConfigFileException(f"invalid file {data}")
     def __parse_lg__(self,domain,data):
         if domain == 'all':
             self.logFile=data

@@ -21,23 +21,25 @@ class DNSEntry:
         else:
             self.__init_from_bytes__(data)
 
-    def __init_from_file__(self, str):
+    def __init_from_file__(self, line):
+        
+        
         types = [member.name for member in EntryType]
-        split = str.split()
+        args = line.split()
 
 
-        if len(split) in [4,5]:
-            self.parameter = split[0]
-            self.value = split[2]
+        if len(args) in [4,5]:
+            self.parameter = args[0]
+            self.value = args[2]
 
             try:
-                self.type = EntryType(types.index(split[1]))
+                self.type = EntryType(types.index(args[1]))
             except ValueError:
                 raise InvalidDNSEntryException("Unknown entry type")
 
             try:
-                self.ttl = int(split[3])
-                self.priority = 0 if len(split) == 4 else int(split[4])
+                self.ttl = int(args[3])
+                self.priority = 0 if len(args) == 4 else int(args[4])
             except ValueError:
                 raise InvalidDNSEntryException("Priority and TTL must be integers")
         else:
@@ -56,3 +58,10 @@ class DNSEntry:
 
     def __str__(self):
         return "{parameter} {type} {value} {ttl} {priority}".format(parameter = self.parameter, type = self.type.value, value = self.value, ttl = self.ttl, priority = self.priority)
+    
+    
+    
+    
+    
+    
+    
