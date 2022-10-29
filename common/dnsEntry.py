@@ -57,7 +57,7 @@ class DNSEntry:
         return []
 
     def __str__(self):
-        return "{parameter} {type} {value} {ttl} {priority}".format(parameter = self.parameter, type = self.type.value, value = self.value, ttl = self.ttl, priority = self.priority)
+        return f"{self.parameter} {self.type.value} {self.value} {self.ttl} {self.priority}"
     
     
     

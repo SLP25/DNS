@@ -9,31 +9,58 @@ lambda u16 = x: struct.unpack('H', struct.pack('h', x))
 
 class DNSPacket:
     class Header:
-        def __init__(self,id:int,flag:str,responseCode:int,numberOfValues:int,\
-            numberOfAuthorities:int,numberOfExtraValues:int):
-            self.id=id
-            self.flag=flag
-            self.responseCode=responseCode
-            self.numberOfValues=numberOfValues
-            self.numberOfAuthorities=numberOfAuthorities
-            self.numberOfExtraValues=numberOfExtraValues
-            self.__validate__()
+        
+        def get_id(self):
+            return self.id
+        def get_flags(self):
+            return self.flags
+        def get_responseCode(self):
+            return self.responseCode
+        def get_numberOfValues(self):
+            return self.numberOfValues
+        def get_numberOfAuthorities(self):
+            return self.numberOfAuthorities
+        def get_numberOfExtraValues(self):
+            return self.numberOfExtraValues
+        
+        def set_id(self,a):
+            self.id = a
+        def set_flags(self,a):
+            self.flags = a
+        def set_responseCode(self,a):
+            self.responseCode = a
+        def set_numberOfValues(self,a):
+            self.numberOfValues = a
+        def set_numberOfAuthorities(self,a):
+            self.numberOfAuthorities = a
+        def set_numberOfExtraValues(self,a):
+            self.numberOfExtraValues = a
+        
+        
             
-            
-        def __validate_flag__(self):
-            if not (len(self.flag)>0 and len(self.flag)<4):
-                raise ValueError(f"there can only be 1-3 flags {len(self.flag)} recieved")
-            if not re.match('^[QRA]*$', self.flag):
+        def __validate_flags__(self):
+            if not (len(self.flags)>0 and len(self.flasg)<4):
+                raise ValueError(f"there can only be 1-3 flags {len(self.flags)} recieved")
+            if not re.match('^[QRA]*$', self.flags):
                 raise ValueError("Flags must be only composed of QRA")
             for c in 'QRA':
-                if self.flag.count(c)>1:
+                if self.flags.count(c)>1:
                     raise ValueError(f"Flag {c} repeted more than once")
+                
+                
+        def get_numberOfNonCounters(self):
+            elements=[
+                self.numberOfValues,
+                self.numberOfAuthorities,
+                self.numberOfExtraValues,
+            ]
+            return sum(map(lambda x: 1 if x>0 else 0,elements))#counter the number of lists that will be used (this will be helpful in the body fromString function)
                 
                 
         def __validate__(self):
             if not 1<=self.id<=65536:
                 raise ValueError("Id must be a number between 1-65536")
-            self.__validate_flag__()
+            self.__validate_flags__()
             if not 0<=self.responseCode<=3:
                 raise ValueError("Response Code must be a number between 0-3")
             if not 0<=self.numberOfValues<=255:
@@ -47,31 +74,40 @@ class DNSPacket:
         def __str__(self):
             elements=[
                 self.id,
-                self.flag,
+                self.flags,
                 self.responseCode,
                 self.numberOfValues,
                 self.numberOfAuthorities,
                 self.numberOfExtraValues,
             ]
             return ','.join(str(element) for element in elements)+';'
+        def toBytes(self):
+            pass
+        
+        def from_str(self,data:str):
+            header=data.split(',')
+            if len(header)!=6:
+                raise ValueError(f"header contains the wrong number of arguments:{len(header)} expected 6")
+            messageId,flags,responseCode,numberOfValues,numberOfAuthorities,numberOfExtraValues=header
+            self.id=int(messageId)
+            self.flags=flags
+            self.responseCode=int(responseCode)
+            self.numberOfValues=int(numberOfValues)
+            self.numberOfAuthorities=int(numberOfAuthorities)
+            self.numberOfExtraValues=int(numberOfExtraValues)
+            self.__validate__()
+            
+            
+            
         
             
     class Body:
-        def __init__(self,name:str,typeOfValue:EntryType,responseValues:list[DNSEntry],\
-            authoritativeValues:list[str],extraValues:list[str]):
-            self.name = name 
-            self.typeOfValue = typeOfValue
-            self.responseValues = responseValues
-            self.authoritativeValues = authoritativeValues
-            self.extraValues = extraValues
-            self.__validate__()
-            
         def __VerifyExtraValuesIPv4__(self):
             for extraValue in self.extraValues:
                 if len(re.findall("^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$", extraValue))!=1: #TODO: verificar este regex q eu copiei da net n o verifiquei 
                     raise ValueError(f"extra value {extraValue} doesn't match a IPv4 address")
                     
-                    
+ 
         def __validate__(self):
             self.__VerifyExtraValuesIPv4__()
             
@@ -83,27 +119,70 @@ class DNSPacket:
                 self.extraValues,
             ]
             return ';'.join(','.join(str(e) for e in element)for element in elements)+';'
+        def toBytes(self):
+            pass
+        
+        def queryInfo_fromString(self,data:str):
+            queryInfo=data.split(',')
+            if len(queryInfo)!=2:
+                raise ValueError(f"Query info invalid number of fields expected 2 but {len(queryInfo)} were given")
+            self.name = queryInfo[0]
+            self.typeOfValue = EntryType[queryInfo[1]]
+        
+        def responseValues_fromString(self,data:str):
+            values=data.split(',')
+            self.responseValues=list(map(lambda x: DNSEntry(x),values))
+            
+        def authorities_fromString(self,data:str):
+            values=data.split(',')
+            self.authoritativeValues=values
+
+            
+        def extraValues_fromString(self,data:str):
+            values=data.split(',')
+            self.extraValues=values
+
+        
+        
+        def from_str(self,header:self.Header,data:str):
+            """
+            assumes the data doesn't end with ; pls remove before sending here
+            """
+            body=data.split(';')
+            if len(body)!=1+header.get_numberOfNonCounters():
+                raise ValueError(f"body contains the wrong number of paramenters {len(body)} were given, expected {1+header.get_numberOfNonCounters()}")
+            queryInfo = body.pop(0)
+            self.queryInfo_fromString(body.pop(0))
+            if header.get_numberOfValues()>0:
+                values=body.pop(0)
+                self.responseValues_fromString(values)
+            else:
+                self.responseValues=[]
+            if header.get_numberOfAuthorities()>0:
+                authorities=body.pop(0)
+                self.authorities_fromString(authorities)
+            else:
+                self.authoritativeValues=[]
+            if header.get_numberOfExtraValues()>0:
+                extraValues=body.pop(0)
+                self.extraValues_fromString(extraValues)
+            else:
+                self.extraValues=[]
+            self.__validate__()
+                
+                
+
+            
+            
+            
             
                 
             
         
             
-    def __init__(self,id:int,flag:str,responseCode:int,\
-        name:str,typeOfValue:EntryType,responseValues:list[DNSEntry],\
-        authoritativeValues:list[str],extraValues:list[str],\
-        numberOfValues=None,numberOfAuthorities=None,numberOfExtraValues=None):
-        
-        if numberOfValues==None:
-            numberOfValues=len(responseValues)    
-        if numberOfAuthorities==None:
-            numberOfAuthorities=len(authoritativeValues)
-        if numberOfExtraValues==None:
-            numberOfExtraValues=len(extraValues)
-        
-
-        self.header=self.Header(id, flag, responseCode, numberOfValues, numberOfAuthorities, numberOfExtraValues)
-        self.body=self.Body(name, typeOfValue, responseValues, authoritativeValues, extraValues)
-        self.__validate__()
+    def __init__(self):
+        self.header=self.Header()
+        self.body=self.Body()
         
         
     def __validate__(self):
@@ -116,12 +195,16 @@ class DNSPacket:
         
     def __str__(self):
         return str(self.header)+str(self.body)
-
+    
+    def from_str(self,data:str):
+        pos=myString.find(';')
+        if pos==-1: #first separator not found
+            raise ValueError("no separator found")
+        self.header.from_str(data[:pos])
+        self.body.from_str(self.header, data[pos+1:-1])
+        self.__validate__()
+        
             
-            
-    
-    
-    
-    def __init__(self):
-        se
-    
+        
+    def toBytes(self):
+        pass
