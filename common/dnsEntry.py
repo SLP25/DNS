@@ -24,7 +24,7 @@ class DNSEntry:
     def __init_from_file__(self, line):
         
         
-        types = [member.name for member in EntryType]
+
         args = line.split()
 
 
@@ -33,7 +33,7 @@ class DNSEntry:
             self.value = args[2]
 
             try:
-                self.type = EntryType(types.index(args[1]))
+                self.type = EntryType[args[1]]
             except ValueError:
                 raise InvalidDNSEntryException("Unknown entry type")
 
@@ -45,7 +45,7 @@ class DNSEntry:
         else:
             raise InvalidDNSEntryException("Line has more than 4/5 words")
 
-        self.__validate_entry()
+        self.__validate_entry__()
 
     def __init_from_bytes__(self, bytes):
         return
