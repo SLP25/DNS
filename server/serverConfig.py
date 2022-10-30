@@ -1,5 +1,5 @@
 from enum import Enum
-from exceptions import NoConfigFileException
+from exceptions import InvalidConfigFileException, NoConfigFileException
 from ..common.dnsEntry import DNSEntry
 
 class ConfigType(Enum):
@@ -12,8 +12,6 @@ class ConfigType(Enum):
 
 class ServerConfig:
 
-            
-    
     def __init__(self, filePath):
         self.primaryDomains = {}#domain:serverData
         self.dnsEntries = {}#domain:DNSEntry
@@ -69,7 +67,7 @@ class ServerConfig:
         if domain in self.dnsEntries:
             raise InvalidConfigFileException(f"duplicated dns entry in {domain} domain")
         try:
-            with open(filepath,'r') as file:
+            with open(data,'r') as file:
                 lines=file.readLines()#this way we can get a list of all lines
         except:
              raise InvalidConfigFileException(f"invalid file {data}")
