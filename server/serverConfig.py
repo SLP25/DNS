@@ -39,8 +39,6 @@ class ServerConfig:
 
         if line.startswith('#'):
             return
-
-        types = [member.name for member in ConfigType]
         args = line.split()
 
         if len(args) == 3:
