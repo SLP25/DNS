@@ -10,3 +10,12 @@ class InvalidDNSEntryException(Exception):
     to parse raw data (string or bytes) to DNSEntry
     '''
     pass
+
+class MainLoggerNotIniciatedException(Exception):
+    '''
+    The main logger was not initiated before trying to log data.
+    '''
+class LoggerNotIniciatedException(Exception):
+    '''
+    The logger was not iniciated before trying to log data
+    '''
