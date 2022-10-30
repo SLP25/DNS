@@ -46,7 +46,7 @@ class ServerConfig:
         if len(args) == 3:
             domain,valueType,data=args
             try:
-                lineType = ConfigType(types.index(valueType))
+                lineType = ConfigType[valueType]
                 
 
                 if lineType == ConfigType.DB:
