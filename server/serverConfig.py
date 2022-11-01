@@ -11,7 +11,6 @@ class ConfigType(Enum):
     LG = 5
 
 class ServerConfig:
-
     def __init__(self, filePath):
         self.primaryDomains = {}#domain:serverData
         self.dnsEntries = {}#domain:DNSEntry

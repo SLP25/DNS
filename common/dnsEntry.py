@@ -23,8 +23,8 @@ class DNSEntry:
 
     def __init_from_file__(self, line):
         
-        
-
+        print("LINHA")
+        print(line)
         args = line.split()
 
 
@@ -39,6 +39,7 @@ class DNSEntry:
 
             try:
                 self.ttl = int(args[3])
+                print(args[4])
                 self.priority = 0 if len(args) == 4 else int(args[4])
             except ValueError:
                 raise InvalidDNSEntryException("Priority and TTL must be integers")
@@ -57,7 +58,7 @@ class DNSEntry:
         return []
 
     def __str__(self):
-        return f"{self.parameter} {self.type.value} {self.value} {self.ttl} {self.priority}"
+        return f"{self.parameter} {self.type.name} {self.value} {self.ttl} {self.priority}"
     
     
     

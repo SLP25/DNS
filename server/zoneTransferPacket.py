@@ -22,13 +22,13 @@ from enum import Enum
 import re
 from common.dnsEntry import DNSEntry
 
-from exceptions import InvalidZoneTransferPacketException
+from .exceptions import InvalidZoneTransferPacketException
 
 class SequenceNumber(Enum):
     '''
     The sequence number indicates which part of the zone transfer
     protocol is being conducted
-    '''
+
     SS_VERSION_NUMBER = 0, 'SS server requests the version number of the database for a domain'
     SP_VERSION_NUMBER = 1, 'SP replies with the version number of the database'
     SS_DOMAIN_NAME = 2, 'SS wants to do a zone transfer for a given domain'
@@ -37,6 +37,16 @@ class SequenceNumber(Enum):
     SP_DNS_ENTRY = 5, 'SP is sending an entry of the database for the domain'
     SS_ACKNOWLEDGE = 6, 'SS confirms having received all database entries'
     SP_ACKNOWLEDGE = 7, 'SP acknowledges and zone transfer terminates'
+     
+    '''
+    SS_VERSION_NUMBER = 0
+    SP_VERSION_NUMBER = 1
+    SS_DOMAIN_NAME = 2
+    SP_NUMBER_ENTRIES = 3
+    SS_NUMBER_ENTRIES = 4
+    SP_DNS_ENTRY = 5
+    SS_ACKNOWLEDGE = 6
+    SP_ACKNOWLEDGE = 7
 
 class ZoneStatus(Enum):
     '''
@@ -46,11 +56,17 @@ class ZoneStatus(Enum):
     
     So if a SS is not authorized to see information about a domain, the SP
     would put a 1 value in the status field of its reply
-    '''
+
+
     SUCCESS = 0, 'No errors'
     UNAUTHORIZED = 1, 'SS not authorized to view information about the domain'
     NO_SUCH_DOMAIN = 2, 'SP does not have the given domain in the database'
     BAD_REQUEST = 3, 'The previous request was not in the correct format'
+    '''
+    SUCCESS = 0
+    UNAUTHORIZED = 1
+    NO_SUCH_DOMAIN = 2
+    BAD_REQUEST = 3
 
 class ZoneTransferPacket:
     '''
@@ -96,21 +112,28 @@ class ZoneTransferPacket:
         if search is None:
             raise InvalidZoneTransferPacketException("String does not follow format")
 
-        sequenceNumber = SequenceNumber(int(search.group(1)))
-        status = ZoneStatus(int(search.group(2)))
+        # The groups for the regex are: 0 -> whole thing 1-> whole thing again 2-> first match,
+        # hence starting from 2 instead of 1
+        sequenceNumber = SequenceNumber(int(search.group(2)))
+        status = ZoneStatus(int(search.group(3)))
 
         data = None
         #TODO: Validate input
-        if sequenceNumber in [0,2]:
-            data = search.group(3)
-        elif sequenceNumber in [1,3,4]:
-            data = int(search.group(3))
-        elif sequenceNumber in [5]:
-            data_search = re.search("([1-9][0-9]{0,4}|65535)", search.group(3))
+        if sequenceNumber.value in [0,2]:
+            data = search.group(4)
+        elif sequenceNumber.value in [1,3]:
+            data = int(search.group(4))
+        elif sequenceNumber.value in [5]:
+            print(search.group(4))
+            data_search = re.search("\\((([0-9]{1,5}|65535),(.*))\\)", search.group(4))
             if data_search is None:
                 raise InvalidZoneTransferPacketException("No order for dns entry given")
-            data = (int(data_search.group(1)), DNSEntry(data_search.group(2), fromFile= True))
-
+            data = (int(data_search.group(2)), DNSEntry(data_search.group(3), fromFile= True))
+        elif sequenceNumber.value in [4]:
+            data_search = re.search("\\((([0-9]{1,5}|65535),(.*))\\)", search.group(4))
+            if data_search is None:
+                raise InvalidZoneTransferPacketException("Invalid packet")
+            data = (int(data_search.group(2)), data_search.group(3))
         return ZoneTransferPacket(sequenceNumber, status, data)
 
     def __str__(self):
@@ -127,5 +150,5 @@ class ZoneTransferPacket:
         an integer from 0-65535 and dns_entry a DNSEntry in string form
         '''
         return "({sequenceNumber},{status},{data})".format(
-            sequenceNumber = self.sequenceNumber,
-            status = self.status, data = self.data)
+            sequenceNumber = self.sequenceNumber.value,
+            status = self.status.value, data = str(self.data) if self.sequenceNumber.value != 5 else f"({self.data[0]},{self.data[1]})")
