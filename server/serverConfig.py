@@ -1,6 +1,6 @@
 from enum import Enum
-from exceptions import InvalidConfigFileException, NoConfigFileException
-from ..common.dnsEntry import DNSEntry
+from .exceptions import InvalidConfigFileException, NoConfigFileException
+from common.dnsEntry import DNSEntry
 
 class ConfigType(Enum):
     DB = 0

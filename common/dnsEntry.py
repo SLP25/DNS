@@ -1,5 +1,5 @@
 from enum import Enum
-from exceptions import InvalidDNSEntryException
+from .exceptions import InvalidDNSEntryException
 
 class EntryType(Enum):
     SOASP = 0

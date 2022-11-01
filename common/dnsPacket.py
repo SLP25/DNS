@@ -1,10 +1,7 @@
 import struct
 import re
-from dnsEntry import DNSEntry,EntryType
+from .dnsEntry import DNSEntry,EntryType
 import random
-#this converts something into an unsigned short
-
-lambda u16 = x: struct.unpack('H', struct.pack('h', x))
 
 
 
@@ -181,7 +178,7 @@ class DNSPacket:
 
         
         
-        def from_str(self,header:self.Header,data:str):
+        def from_str(self,header,data:str):
             """
             assumes the data doesn't end with ; pls remove before sending here
             """
