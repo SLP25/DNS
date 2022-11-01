@@ -24,13 +24,14 @@ class Server:
         
         if packet.get_QueryInfoName() in self.config.authorizedSS():
             #TODO:search DATABASE??
-            pass
+            #send packet
+            return
         # if SDT IN CACHE
         #    std=chache[packet.get_]
         #else
         sdt=None
         for server in self.config.topServers:
-            self.server.send(str(packet),server)
+            self.server.send(str(packet),server) #depois mudar isto para verificar se usa modo de debug ou n
             message,addr=self.server.receive()
             tpacket=DNSPacket().from_str(message)
             if tpacket.get_responseCode() == 0: 
@@ -40,9 +41,9 @@ class Server:
         if sdt:
             #adicionar a cache
             if not packet.isRecursive():
-                self.server.send(str(packet),std[0])
+                self.server.send(str(packet),std[0]) #depois mudar isto para verificar se usa modo de debug ou n
                 message,addr=self.server.receive()
-                self.server.send(message,address)
+                self.server.send(message,address) #devolve o proximo a contactar/resposta
         #else enviar packet com erro  
             
         
