@@ -1,6 +1,7 @@
 import struct
 import re
 from dnsEntry import DNSEntry,EntryType
+import random
 #this converts something into an unsigned short
 
 lambda u16 = x: struct.unpack('H', struct.pack('h', x))
@@ -35,6 +36,10 @@ class DNSPacket:
             self.numberOfAuthorities = a
         def set_numberOfExtraValues(self,a):
             self.numberOfExtraValues = a
+            
+        def isRecursive(self):
+            return 'Q' in self.flags
+        
         
         
             
@@ -102,6 +107,38 @@ class DNSPacket:
         
             
     class Body:
+        
+        def get_name(self):
+            return self.name
+        def get_typeOfValue(self):
+            return self.typeOfValue
+        def get_responseValues(self):
+            return self.responseValues
+        def get_authoritativeValues(self):
+            return self.authoritativeValues
+        def get_extraValues(self):
+            return self.extraValues
+        
+        def set_name(self,name):
+            self.name = name
+        def set_typeOfValue(self,typeOfValue):
+            self.typeOfValue = typeOfValue
+        def set_responseValues(self,responseValues):
+            self.responseValues = responseValues
+        def set_authoritativeValues(self,authoritativeValues):
+            self.authoritativeValues = authoritativeValues
+        def set_extraValues(self,extraValues):
+            self.extraValues = extraValues
+            
+        def add_responseValues(self,responseValue):
+            self.responseValues.append(responseValue)
+        def add_authoritativeValues(self,authoritativeValue):
+            self.authoritativeValues.append(authoritativeValue)
+        def add_extraValues(self,extraValue):
+            self.extraValues.append(extraValue)
+        
+        
+        
         def __VerifyExtraValuesIPv4__(self):
             for extraValue in self.extraValues:
                 if len(re.findall("^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$", extraValue))!=1: #TODO: verificar este regex q eu copiei da net n o verifiquei 
@@ -173,13 +210,6 @@ class DNSPacket:
                 
 
             
-            
-            
-            
-                
-            
-        
-            
     def __init__(self):
         self.header=self.Header()
         self.body=self.Body()
@@ -203,6 +233,47 @@ class DNSPacket:
         self.header.from_str(data[:pos])
         self.body.from_str(self.header, data[pos+1:-1])
         self.__validate__()
+        
+    def createEmptyMessage(self,name:str,typeOfValue:EntryType,messageId=random.randint(1, 65356),query=False,recursive=False,authorative=False):
+        self.header.set_id(messageID)
+        flagsBool=[query,recursive,authorative]
+        strFlags=''
+        for p,i in enumerate('QRA'):
+            if flagsBool[p]:
+                strFlags+=i
+        self.header.set_flags(strFlags)
+        self.header.set_responseCode(0)
+        self.header.set_numberOfValues(0)
+        self.header.set_numberOfAuthorities(0)
+        self.header.set_numberOfExtraValues(0)
+        self.body.set_name(name)
+        self.body.set_typeOfValue(typeOfValue)
+        
+        
+    def addValue(self, responseValue):
+        self.header.set_numberOfValues(self.header.get_numberOfValues()+1)
+        self.body.add_responseValues(responseValue)
+
+    def addAuthority(self, authoritativeValue):
+        self.header.set_numberOfAuthorities(self.header.get_numberOfAuthorities()+1)
+        self.body.add_authoritativeValues(authoritativeValue)
+    
+    def addExtraValue(self, extraValue):
+        self.header.set_numberOfExtraValues(self.header.get_numberOfExtraValues()+1)
+        self.body.add_extraValues(extraValue)
+    
+    def isRecursive(self):
+        return self.header.isRecursive()
+
+    def get_QueryInfoName(self):
+        return self.body.get_name()
+    def get_QueryInfoTypeOfValue(self):
+        return self.body.get_typeOfValue()
+    def get_responseCode(self):
+        return self.header.get_responseCode()
+    def get_responseValues(self):
+            return self.responseValues
+
         
             
         
