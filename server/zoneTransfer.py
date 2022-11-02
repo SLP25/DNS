@@ -31,38 +31,43 @@ Max zone transfer packet size in bytes
 maxSize = 1024
 
 #TODO: Validate request
-def processPacket(packet):
+def processPacket(serverConfig, packet):
     """
     Given a packet an SP received from an SS, computes the packet(s) to send back
     in response. Auxiliary function for zoneTransferSP
 
     Arguments:
 
+    serverConfig : ServerConfig -> the configuration of the server
     packet : ZoneTransferPacket -> the packet received
     """
     if packet.sequenceNumber == SequenceNumber(0):
-        return ZoneTransferPacket(SequenceNumber(1), ZoneStatus(0), 1)
+        return [ZoneTransferPacket(SequenceNumber(1), ZoneStatus(0), 1)]
 
     if packet.sequenceNumber == SequenceNumber(2):
-        return ZoneTransferPacket(SequenceNumber(3), ZoneStatus(0), 1)
+        return [ZoneTransferPacket(SequenceNumber(3), ZoneStatus(0), len(serverConfig.dnsEntries[packet.data]))]
 
 
     if packet.sequenceNumber == SequenceNumber(4):
-        return ZoneTransferPacket(SequenceNumber(5), ZoneStatus(0), (0,DNSEntry("ns1 CNAME batata 100 100", fromFile = True)))
+        res = []
+        for index, entry in enumerate(serverConfig.dnsEntries[packet.data[1]]):
+            res.append(ZoneTransferPacket(SequenceNumber(5), ZoneStatus(0), (index, entry)))
+        return res
 
     
     if packet.sequenceNumber == SequenceNumber(6):
-        return ZoneTransferPacket(SequenceNumber(7), ZoneStatus(0), None)
+        return [ZoneTransferPacket(SequenceNumber(7), ZoneStatus(0), None)]
 
-def zoneTransferSP(localIP, port):
+def zoneTransferSP(serverConfig, localIP, port):
     """
     Function implementing the zone transfer protocol from the point of view of an
     SP.
 
     Arguments:
     
-    localIP : String -> The IP where the TCP socket will be binded
-    port    : int    -> The port to listen on
+    serverConfig : ServerConfig -> the configuration of the server
+    localIP      : String       -> The IP where the TCP socket will be binded
+    port         : int          -> The port to listen on
     """
     #Setup socket
     tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -73,16 +78,17 @@ def zoneTransferSP(localIP, port):
         #Run forever
         while True:
             (clientConnected, clientAddress) = tcpSocket.accept()
-            print("Client address")
 
             for i in range(4):
                 data = clientConnected.recv(maxSize)
                 print(data.decode())
                 packet = ZoneTransferPacket.from_str(data.decode())
                 print(str(packet))
-                response_packet = processPacket(packet)
-                print(str(response_packet))
-                clientConnected.send(str(response_packet).encode())
+                response_packets = processPacket(serverConfig, packet)
+                for response_packet in response_packets:
+                    print(str(response_packet))
+                    clientConnected.send(str(response_packet).encode())
+                    time.sleep(1)
 
     finally:
         tcpSocket.close()
@@ -155,7 +161,6 @@ def getAllEntries(tcpSocket, domain, entries):
     newEntries = {}
     for i in range(entries):
         data = tcpSocket.recv(maxSize)
-        print(data.decode())
         receivedPacket = ZoneTransferPacket.from_str(data.decode())
         #TODO: Remove debug print
         
@@ -168,7 +173,11 @@ def getAllEntries(tcpSocket, domain, entries):
         
         newEntries[(domain, entry.type)].append(entry)
         
-        #TODO: Replace entries
+    #TODO: Replace entries
+    print("====================================")
+    for entry in newEntries:
+        print(entry)
+    print("====================================")
 
 
 def confirmEntries(tcpSocket):

@@ -110,7 +110,7 @@ class ZoneTransferPacket:
         search = re.search("(\(([01234567])\,([012])\,(.*)\))", string)
 
         if search is None:
-            raise InvalidZoneTransferPacketException("String does not follow format")
+            raise InvalidZoneTransferPacketException("String " + string + " does not follow format")
 
         # The groups for the regex are: 0 -> whole thing 1-> whole thing again 2-> first match,
         # hence starting from 2 instead of 1
@@ -149,6 +149,7 @@ class ZoneTransferPacket:
         - a tuple in the format "(<order>,<dns_entry>)" with order being
         an integer from 0-65535 and dns_entry a DNSEntry in string form
         '''
+            
         return "({sequenceNumber},{status},{data})".format(
             sequenceNumber = self.sequenceNumber.value,
-            status = self.status.value, data = str(self.data) if self.sequenceNumber.value != 5 else f"({self.data[0]},{self.data[1]})")
+            status = self.status.value, data = str(self.data) if self.sequenceNumber.value not in [4,5] else f"({str(self.data[0])},{str(self.data[1])})")

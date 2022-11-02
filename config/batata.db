@@ -1,0 +1,3 @@
+ns1 A 193.136.130.250 255
+mail CNAME mx1 100
+ls MX cs.batata 200 20

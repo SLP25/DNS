@@ -30,6 +30,30 @@ class ServerConfig:
         except FileNotFoundError:
             raise NoConfigFileException("Could not open " + filePath)
 
+    def replaceDomainEntries(self, domain, newEntries):
+        #TODO: Thread safety
+        """
+        Replaces all entries of a certain domain with the given new entries.
+        Used to update the copy of the original database in an SS after a zone transfer.
+
+        This method WILL BE thread safe.
+
+        More specifically, this method erases all entries for the domain in the copy of the database,
+        and inserts the new ones in their place
+
+        Arguments:
+
+        domain     : String                                               -> The given domain
+        newEntries : Dict (Domain : String, Type : EntryType) => DNSEntry -> A dict with the new entries
+        """
+        #Deleting old values
+        for key, value in self.dnsEntries.items():
+            if key[0] == domain:
+                self.dnsEntries.pop(key) 
+                
+        #Inserting new values
+        self.dnsEntries.update(newEntries)
+
     def __parseLine__(self, line):
         if line == "":
             return
@@ -62,21 +86,23 @@ class ServerConfig:
             raise InvalidConfigFileException(line + " contains more than 3 words")
 
 
-    def __parse__db__(self,domain,data):
+    def __parse_db__(self,domain,data):
         if domain in self.dnsEntries:
             raise InvalidConfigFileException(f"duplicated dns entry in {domain} domain")
         try:
             with open(data,'r') as file:
-                lines=file.readLines()#this way we can get a list of all lines
+                lines=file.readlines()#this way we can get a list of all lines
         except:
-             raise InvalidConfigFileException(f"invalid file {data}")
+            raise InvalidConfigFileException(f"invalid file {data}")
         self.dnsEntries[domain]=[DNSEntry(line,fromFile=True) for line in lines]
         
 
     def __parse_sp__(self,domain,data):
         if domain in self.primaryDomains:
             raise InvalidConfigFileException(f"duplicated primary server in {domain} domain")
-        self.primaryDomains[domain]=data
+        split = data.split(":")
+        #TODO: Throw exception if invalid ip:port
+        self.primaryDomains[domain]=(split[0], int(split[1]))
     def __parse_ss__(self,domain,data):
         if domain not in self.authorizedSS:
             self.authorizedSS[domain]=[]
@@ -102,10 +128,6 @@ class ServerConfig:
             raise InvalidConfigFileException(f"log files for non existing domain {domain}")
         else:
             self.especificLogFiles[domain]=data
-    
-    
-    
-    
 
     def __validate_entry__(self):
         return None
