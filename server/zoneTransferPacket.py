@@ -93,6 +93,31 @@ class ZoneTransferPacket:
         pass
 
     @staticmethod
+    def split_messages(buffer):
+        """
+        Splits the content of the buffer in the first message in it and
+        the remaining of the buffer. Works like splitting a list in Haskell by 
+        head and tail, only that each element of the list is a ZoneTransferPacket.
+        
+        This has no side effects.
+
+        Args:
+            buffer (bytes): the buffer to split
+
+        Returns:
+            (bytes | None, bytes): (The first message (None if not exists), the
+            remaining buffer)
+        """
+        #TODO: Binary
+        split = buffer.decode().split("\n", 1)
+
+        if len(split) == 1:
+            return (None, buffer)
+        
+        return (split[0], split[1])
+        
+    
+    @staticmethod
     def from_str(string):
         '''
         Creates a ZoneTransferPacket from a given string.
@@ -150,6 +175,6 @@ class ZoneTransferPacket:
         an integer from 0-65535 and dns_entry a DNSEntry in string form
         '''
             
-        return "({sequenceNumber},{status},{data})".format(
+        return "({sequenceNumber},{status},{data})\n".format(
             sequenceNumber = self.sequenceNumber.value,
             status = self.status.value, data = str(self.data) if self.sequenceNumber.value not in [4,5] else f"({str(self.data[0])},{str(self.data[1])})")

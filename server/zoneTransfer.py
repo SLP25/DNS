@@ -10,15 +10,14 @@ by asking how many entries the database has. The SP answers, the SS acknowledges
 Then, the SP will send one segment per entry. When all segments are received by the SS, it will confirm 
 having received everything. The SP will acknowledge this, terminating the zone transfer.
 
-Last Modification: Documentation
-Date of Modification: 02/11/2022 09:39
+Last Modification: New TCP wrapper
+Date of Modification: 04/11/2022 18:56
 """
 
 
 import time
 import socket
-import sys
-from common.dnsEntry import DNSEntry
+from common.tcpClient import TCPClient
 
 #TODO: Handle errors (wrong status etc)
 #TODO: Proper timeout
@@ -77,17 +76,16 @@ def zoneTransferSP(serverConfig, localIP, port):
     try:
         #Run forever
         while True:
-            (clientConnected, clientAddress) = tcpSocket.accept()
+            clientConnected = TCPClient(tcpSocket.accept(), ZoneTransferPacket.split_messages, maxSize)
 
             for i in range(4):
-                data = clientConnected.recv(maxSize)
-                print(data.decode())
+                data = clientConnected.read()
                 packet = ZoneTransferPacket.from_str(data.decode())
                 print(str(packet))
                 response_packets = processPacket(serverConfig, packet)
                 for response_packet in response_packets:
                     print(str(response_packet))
-                    clientConnected.send(str(response_packet).encode())
+                    clientConnected.write(str(response_packet).encode())
                     time.sleep(1)
 
     finally:
@@ -109,7 +107,7 @@ def getServerVersionNumber(tcpSocket, domain):
     int : The version number of the database
     """
     sentPacket = ZoneTransferPacket(SequenceNumber(0), ZoneStatus(0), domain)
-    tcpSocket.send(str(sentPacket).encode())
+    tcpSocket.sendall(str(sentPacket).encode())
     data = tcpSocket.recv(maxSize)
     receivedPacket = ZoneTransferPacket.from_str(data.decode())
     return receivedPacket.data
@@ -129,7 +127,7 @@ def getDomainNumberEntries(tcpSocket, domain):
     int : the number of entries to expect for the domain
     """
     sentPacket = ZoneTransferPacket(SequenceNumber(2), ZoneStatus(0), domain)
-    tcpSocket.send(str(sentPacket).encode())
+    tcpSocket.sendall(str(sentPacket).encode())
     data = tcpSocket.recv(maxSize)
     receivedPacket = ZoneTransferPacket.from_str(data.decode())
     return receivedPacket.data
@@ -219,16 +217,16 @@ def zoneTransferSS(serverConfig):
             tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tcpSocket.connect(server_address)
 
+            print("INICIO")
             #try:
             versionNumber = getServerVersionNumber(tcpSocket, domain)
-
+            print("VERSION NUMBER")
             #TODO: Check version Number
             if versionNumber < 0:
                 continue
-            
             numberEntries = getDomainNumberEntries(tcpSocket, domain)
             acknowledgeNumberEntries(tcpSocket, domain, numberEntries)
-            
+            print("Entries")
             getAllEntries(tcpSocket, domain, numberEntries)
             
             confirmEntries(tcpSocket)
