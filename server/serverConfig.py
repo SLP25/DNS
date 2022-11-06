@@ -1,6 +1,10 @@
 from enum import Enum
 from .exceptions import InvalidConfigFileException, NoConfigFileException
 from common.dnsEntry import DNSEntry
+from domain import Domain
+import re
+
+
 
 class ConfigType(Enum):
     DB = 0
@@ -9,16 +13,24 @@ class ConfigType(Enum):
     DD = 3
     ST = 4
     LG = 5
+    
+    @staticmethod
+    def get_all():
+        return [e.name for e in ConfigType]
+    
+    
+VALID_DOMAIN_CHAR = '[a-zA-Z0-9\-]'
+DOMAIN = f'({VALID_DOMAIN_CHAR}+\.)*{VALID_DOMAIN_CHAR}+'
+CONFIG_TYPE = f'({"|".join(ConfigType.get_all())})'
+BYTE_RANGE = '([0-1]?[0-9]?[0-9]?|2[0-4][0-9]|25[0-5])'
+IP_ADDRESS = f'({BYTE_RANGE}\.){{3}}{BYTE_RANGE}'
 
 class ServerConfig:
     def __init__(self, filePath):
-        self.primaryDomains = {}#domain:serverData
-        self.dnsEntries = {}#domain:DNSEntry
+        self.domains = {}
+        self.defaultServers = {} #domain:value
         self.topServers = [] #ips
-        self.logFile = None
-        self.especificLogFiles = {} # domain:file
-        self.authorizedSS = {}#domain:serverData
-        self.defaultServers = {}#domain:serverData
+        self.logFiles = []
 
         try:
             with open(filePath, "r") as file:
@@ -26,10 +38,16 @@ class ServerConfig:
 
                 for line in lines:
                     self.__parseLine__(line)
+                    
+                if self.logFiles == []:
+                    raise InvalidConfigFileException("No global log files specified")
+                
+                for d in self.domains.values():
+                    d.validate()
 
         except FileNotFoundError:
             raise NoConfigFileException("Could not open " + filePath)
-
+        
     def replaceDomainEntries(self, domain, newEntries):
         #TODO: Thread safety
         """
@@ -46,88 +64,89 @@ class ServerConfig:
         domain     : String                                               -> The given domain
         newEntries : Dict (Domain : String, Type : EntryType) => DNSEntry -> A dict with the new entries
         """
-        #Deleting old values
-        for key, value in self.dnsEntries.items():
-            if key[0] == domain:
-                self.dnsEntries.pop(key) 
-                
-        #Inserting new values
-        self.dnsEntries.update(newEntries)
-
-    def __parseLine__(self, line):
-        if line == "":
-            return
-
-        if line.startswith('#'):
-            return
-        args = line.split()
-
-        if len(args) == 3:
-            domain,valueType,data=args
-            try:
-                lineType = ConfigType[valueType]
-                
-
-                if lineType == ConfigType.DB:
-                    self.__parse_db__(domain,data)
-                elif lineType == ConfigType.SP:
-                    self.__parse_sp__(domain,data)
-                elif lineType == ConfigType.SS:
-                    self.__parse_ss__(domain,data)
-                elif lineType == ConfigType.DD:
-                    self.__parse_dd__(domain,data)
-                elif lineType == ConfigType.ST:
-                    self.__parse_st__(domain,data)
-                elif lineType == ConfigType.LG:
-                    self.__parse_lg__(domain,data)
-            except ValueError:
-                raise InvalidConfigFileException(line + "has no valid type")
-        else:
-            raise InvalidConfigFileException(line + " contains more than 3 words")
-
-
-    def __parse_db__(self,domain,data):
-        if domain in self.dnsEntries:
-            raise InvalidConfigFileException(f"duplicated dns entry in {domain} domain")
-        try:
-            with open(data,'r') as file:
-                lines=file.readlines()#this way we can get a list of all lines
-        except:
-            raise InvalidConfigFileException(f"invalid file {data}")
-        self.dnsEntries[domain]=[DNSEntry(line,fromFile=True) for line in lines]
+        self.domains.replaceDomainEntries(newEntries)
         
-
-    def __parse_sp__(self,domain,data):
-        if domain in self.primaryDomains:
-            raise InvalidConfigFileException(f"duplicated primary server in {domain} domain")
-        split = data.split(":")
-        #TODO: Throw exception if invalid ip:port
-        self.primaryDomains[domain]=(split[0], int(split[1]))
-    def __parse_ss__(self,domain,data):
-        if domain not in self.authorizedSS:
-            self.authorizedSS[domain]=[]
-        self.authorizedSS[domain].append(data)
-    def __parse_dd__(self,domain,data):
-        if domain not in self.defaultServers:
-            self.defaultServers[domain]=[]
-        self.defaultServers[domain].append(data)
-    def __parse_st__(self,domain,data):
-        if 'root' != domain:
-            raise InvalidConfigFileException(f"ST parameter was {domain} expected root")
-        try:
-            with open(data,'r') as file:
-                self.topServers+=file.readlines()
-        except:
-             raise InvalidConfigFileException(f"invalid file {data}")
-    def __parse_lg__(self,domain,data):
-        if domain == 'all':
-            self.logFile=data
-        elif domain in self.especificLogFiles:
-            raise InvalidConfigFileException(f"duplicated log files in {domain} domain")
-        elif domain not in self.authorizedSS and domain not in self.primaryDomains:
-            raise InvalidConfigFileException(f"log files for non existing domain {domain}")
+    #returns a list of all DNS entries that match the queried hostname and valuetype
+    def answer_query(self, hostname, value_type):
+        default = self.defaultServers[hostname]
+        
+        if default == '127.0.0.1':
+            domain = self.domains
+            
+            if domain == None:
+                return #TODO: ?
+            else:
+                return domain.answer_query(hostname, value_type)
         else:
-            self.especificLogFiles[domain]=data
+            return #TODO: query server 'default'
+            #TODO: recursive vs iterative
+        
+    def get_log_files(self, domain):
+        if domain not in self.domains:
+            return self.logFiles
+        
+        logs = self.domains[domain].logFiles
+        if logs == []:
+            return self.logFiles
+        else:
+            return logs
 
-    def __validate_entry__(self):
-        return None
+    #fetches the domain with the given domain and primary status
+    #if it doesn't exist, it is created. if the primary status isn't specified, an error is raised
+    #if a domain with the same name but wrong primary status exists, an error is raised
+    def __get_domain__(self, domain, primary = None):
+        d = self.domains[domain]
+        
+        if d == None:
+            if primary == None:   #TODO: fix
+                raise InvalidConfigFileException(domain + " domain doesn't exist")
+            
+            d = Domain(domain, primary)
+            self.domains[domain] = d
+            
+        if d.primary != primary:
+            raise InvalidConfigFileException(domain + " domain is treated as both SP and SS")
+        
+        return d
+    
+    def __parseLine__(self, line):
+        if re.search('(^$)|(^\s#)', line):
+            return
+
+        match = re.search(f'^\s*({DOMAIN})\s+({CONFIG_TYPE})\s+(.+?)\s*$', line)
+        if match == None:
+            raise InvalidConfigFileException(line + " doesn't match the pattern \{domain\} \{ConfigType\} \{data\}")
+        
+        domain, valueType, data = match.group(1), match.group(2), match.group(3)
+
+        try:
+            lineType = ConfigType[valueType]
+            
+            if lineType == ConfigType.DB:
+                self.__get_domain__(domain, True).set_databse(data)
+            elif lineType == ConfigType.SP:
+                self.__get_domain__(domain, False).set_primary_server(data)
+            elif lineType == ConfigType.SS:
+                self.__get_domain__(domain, True).add_authorizedSS(data)
+            elif lineType == ConfigType.DD:
+                if domain in self.defaultServers:
+                    raise InvalidConfigFileException(f"Duplicated DD on domain {domain}")
+                if not re.search(f'^{IP_ADDRESS}$', data):
+                    raise InvalidConfigFileException(f"Invalid ip address {data}")
+                self.defaultServers[domain] = data
+            elif lineType == ConfigType.ST:
+                if domain != 'root':
+                    raise InvalidConfigFileException(f"ST parameter was {domain} expected root")
+                try:
+                    with open(data,'r') as file:
+                        self.topServers+=file.readlines() #TODO: check values
+                except:
+                    raise InvalidConfigFileException(f"invalid ST file {data}")
+            elif lineType == ConfigType.LG:
+                if domain == 'all':
+                    self.logFiles.append(data) #TODO: check data
+                else:
+                    self.__get_domain__(domain).add_log_file(data)
+                    
+        except ValueError:
+            raise InvalidConfigFileException(line + " has no valid type")
