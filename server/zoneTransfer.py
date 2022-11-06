@@ -40,16 +40,19 @@ def processPacket(serverConfig, packet):
     serverConfig : ServerConfig -> the configuration of the server
     packet : ZoneTransferPacket -> the packet received
     """
+    
+    entries = serverConfig.get_domain_entries(packet.data)
+    
     if packet.sequenceNumber == SequenceNumber(0):
         return [ZoneTransferPacket(SequenceNumber(1), ZoneStatus(0), 1)]
 
     if packet.sequenceNumber == SequenceNumber(2):
-        return [ZoneTransferPacket(SequenceNumber(3), ZoneStatus(0), len(serverConfig.dnsEntries[packet.data]))]
+        return [ZoneTransferPacket(SequenceNumber(3), ZoneStatus(0), len(entries))]
 
 
     if packet.sequenceNumber == SequenceNumber(4):
         res = []
-        for index, entry in enumerate(serverConfig.dnsEntries[packet.data[1]]):
+        for index, entry in enumerate(entries):
             res.append(ZoneTransferPacket(SequenceNumber(5), ZoneStatus(0), (index, entry)))
         return res
 

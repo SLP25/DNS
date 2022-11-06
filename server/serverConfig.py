@@ -48,6 +48,9 @@ class ServerConfig:
         except FileNotFoundError:
             raise NoConfigFileException("Could not open " + filePath)
         
+    def get_domain_entries(self, domain):
+        return self.domains[domain].dnsEntries
+        
     def replaceDomainEntries(self, domain, newEntries):
         #TODO: Thread safety
         """
@@ -64,7 +67,7 @@ class ServerConfig:
         domain     : String                                               -> The given domain
         newEntries : Dict (Domain : String, Type : EntryType) => DNSEntry -> A dict with the new entries
         """
-        self.domains.replaceDomainEntries(newEntries)
+        self.domains[domain].replaceDomainEntries(newEntries)
         
     #returns a list of all DNS entries that match the queried hostname and valuetype
     def answer_query(self, hostname, value_type):
