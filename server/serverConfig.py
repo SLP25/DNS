@@ -1,9 +1,9 @@
 from enum import Enum
 from .exceptions import InvalidConfigFileException, NoConfigFileException
 from common.dnsEntry import DNSEntry
+import common.utils as utils
 from domain import Domain
 import re
-
 
 
 class ConfigType(Enum):
@@ -19,15 +19,12 @@ class ConfigType(Enum):
         return [e.name for e in ConfigType]
     
     
-VALID_DOMAIN_CHAR = '[a-zA-Z0-9\-]'
-DOMAIN = f'({VALID_DOMAIN_CHAR}+\.)*{VALID_DOMAIN_CHAR}+'
 CONFIG_TYPE = f'({"|".join(ConfigType.get_all())})'
-BYTE_RANGE = '([0-1]?[0-9]?[0-9]?|2[0-4][0-9]|25[0-5])'
-IP_ADDRESS = f'({BYTE_RANGE}\.){{3}}{BYTE_RANGE}'
+
 
 class ServerConfig:
     def __init__(self, filePath):
-        self.domains = {}
+        self.domains = {} #TODO: separar em primary e secondary???
         self.defaultServers = {} #domain:value
         self.topServers = [] #ips
         self.logFiles = []
@@ -48,47 +45,35 @@ class ServerConfig:
         except FileNotFoundError:
             raise NoConfigFileException("Could not open " + filePath)
         
-    def get_domain_entries(self, domain):
-        return self.domains[domain].dnsEntries
-        
     def replaceDomainEntries(self, domain, newEntries):
-        #TODO: Thread safety
-        """
-        Replaces all entries of a certain domain with the given new entries.
-        Used to update the copy of the original database in an SS after a zone transfer.
-
-        This method WILL BE thread safe.
-
-        More specifically, this method erases all entries for the domain in the copy of the database,
-        and inserts the new ones in their place
-
-        Arguments:
-
-        domain     : String                                               -> The given domain
-        newEntries : Dict (Domain : String, Type : EntryType) => DNSEntry -> A dict with the new entries
-        """
-        self.domains[domain].replaceDomainEntries(newEntries)
+        
+        self.domains[domain.lower()].replaceDomainEntries(newEntries) #TODO: entries to lower case
         
     #returns a list of all DNS entries that match the queried hostname and valuetype
+    #TODO: authoritative values and extra values
     def answer_query(self, hostname, value_type):
+        hostname = hostname.lower()
         default = self.defaultServers[hostname]
         
-        if default == '127.0.0.1':
-            domain = self.domains
-            
-            if domain == None:
-                return #TODO: ?
-            else:
-                return domain.answer_query(hostname, value_type)
+        if default == None:
+            return #TODO: if sp/ss, ignore query
+                   #      if sr, make queries/look at cache
+        elif default == '127.0.0.1':
+            ans = []
+            for name,domain in self.domains.items():
+                if utils.is_subdomain(hostname, name):    #TODO: make more eficient (suffix trees?)
+                    ans += domain.answer_query(hostname, value_type)
+            return ans
         else:
-            return #TODO: query server 'default'
+            return #TODO: query server 'default'/cache
             #TODO: recursive vs iterative
         
-    def get_log_files(self, domain):
-        if domain not in self.domains:
+    def get_log_files(self, domain_name):
+        domain_name = domain_name.lower()
+        if domain_name not in self.domains:
             return self.logFiles
         
-        logs = self.domains[domain].logFiles
+        logs = self.domains[domain_name].logFiles
         if logs == []:
             return self.logFiles
         else:
@@ -97,44 +82,51 @@ class ServerConfig:
     #fetches the domain with the given domain and primary status
     #if it doesn't exist, it is created. if the primary status isn't specified, an error is raised
     #if a domain with the same name but wrong primary status exists, an error is raised
-    def __get_domain__(self, domain, primary = None):
-        d = self.domains[domain]
+    def get_domain(self, domain_name, primary = None):
+        domain_name = domain_name.lower()
+        d = self.domains[domain_name]
         
         if d == None:
-            if primary == None:   #TODO: fix
-                raise InvalidConfigFileException(domain + " domain doesn't exist")
+            if primary == None:
+                raise InvalidConfigFileException(domain_name + " domain doesn't exist")
             
-            d = Domain(domain, primary)
-            self.domains[domain] = d
+            d = Domain(domain_name, primary)
+            self.domains[domain_name] = d
             
         if d.primary != primary:
-            raise InvalidConfigFileException(domain + " domain is treated as both SP and SS")
+            raise InvalidConfigFileException(domain_name + " domain is treated as both SP and SS")
         
         return d
+    
+    def get_primary_domains(self):
+        return filter(lambda d: d.primary, self.domains)
+    
+    def get_secondary_domains(self):
+        return filter(lambda d: not d.primary, self.domains)
     
     def __parseLine__(self, line):
         if re.search('(^$)|(^\s#)', line):
             return
 
-        match = re.search(f'^\s*({DOMAIN})\s+({CONFIG_TYPE})\s+(.+?)\s*$', line)
+        match = re.search(f'^\s*({utils.DOMAIN})\s+({CONFIG_TYPE})\s+(.+?)\s*$', line)
         if match == None:
             raise InvalidConfigFileException(line + " doesn't match the pattern \{domain\} \{ConfigType\} \{data\}")
         
-        domain, valueType, data = match.group(1), match.group(2), match.group(3)
+        domain, valueType, data = match.group(1).lower(), match.group(2), match.group(3)
 
         try:
             lineType = ConfigType[valueType]
             
             if lineType == ConfigType.DB:
-                self.__get_domain__(domain, True).set_databse(data)
+                self.get_domain(domain, True).set_databse(data)
             elif lineType == ConfigType.SP:
-                self.__get_domain__(domain, False).set_primary_server(data)
+                self.get_domain(domain, False).set_primary_server(data)
             elif lineType == ConfigType.SS:
-                self.__get_domain__(domain, True).add_authorizedSS(data)
+                self.get_domain(domain, True).add_authorizedSS(data)
             elif lineType == ConfigType.DD:
                 if domain in self.defaultServers:
                     raise InvalidConfigFileException(f"Duplicated DD on domain {domain}")
-                if not re.search(f'^{IP_ADDRESS}$', data):
+                if not re.search(f'^{utils.IP_ADDRESS}$', data):
                     raise InvalidConfigFileException(f"Invalid ip address {data}")
                 self.defaultServers[domain] = data
             elif lineType == ConfigType.ST:
@@ -149,7 +141,7 @@ class ServerConfig:
                 if domain == 'all':
                     self.logFiles.append(data) #TODO: check data
                 else:
-                    self.__get_domain__(domain).add_log_file(data)
+                    self.get_domain(domain).add_log_file(data)
                     
         except ValueError:
             raise InvalidConfigFileException(line + " has no valid type")

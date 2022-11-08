@@ -41,7 +41,8 @@ def processPacket(serverConfig, packet):
     packet : ZoneTransferPacket -> the packet received
     """
     
-    entries = serverConfig.get_domain_entries(packet.data)
+    domain = serverConfig.get_domain(packet.data, True)
+    entries = domain.get_entries()
     
     if packet.sequenceNumber == SequenceNumber(0):
         return [ZoneTransferPacket(SequenceNumber(1), ZoneStatus(0), 1)]
@@ -80,6 +81,8 @@ def zoneTransferSP(serverConfig, localIP, port):
         #Run forever
         while True:
             clientConnected = TCPClient(tcpSocket.accept(), ZoneTransferPacket.split_messages, maxSize)
+
+            #TODO: check if client is authorized (client_ip in serverConfig.get_domain(domain_name, True).authorizedSS)
 
             for i in range(4):
                 data = clientConnected.read()
@@ -214,11 +217,10 @@ def zoneTransferSS(serverConfig):
     serverConfig : ServerConfig -> The configuration of the server
     """
     while True:
-        for domain in serverConfig.primaryDomains:
-            server_address = serverConfig.primaryDomains[domain]
+        for domain in serverConfig.get_secondary_domains():
             # Create a TCP/IP socket
             tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            tcpSocket.connect(server_address)
+            tcpSocket.connect(domain.primaryServer)
 
             print("INICIO")
             #try:
