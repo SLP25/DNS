@@ -5,9 +5,8 @@ import common.utils as utils
 from server.database import Database
 
 class Domain:
-    def __init__(self, name, primary):
+    def __init__(self, name):
         self.name = name
-        self.primary = primary
         self.logFiles = []   #allow only one???
     
         
@@ -15,8 +14,8 @@ class Domain:
         self.logFiles.append(log_file)
         
 class PrimaryDomain(Domain):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, name):
+        super().__init__(name)
         self.authorizedSS = []
         self.database = None
         
@@ -27,7 +26,7 @@ class PrimaryDomain(Domain):
         self.database = Database(path)
         
     def add_authorizedSS(self, authorizedSS):  
-        if not re.search(f'^{utils.IP_ADDRESS}$', authorizedSS):
+        if not re.search(f'^{utils.IP_MAYBE_PORT}$', authorizedSS):
             raise InvalidConfigFileException(f"Invalid ip address {authorizedSS}")
         
         self.authorizedSS.append(authorizedSS)
@@ -43,8 +42,8 @@ class PrimaryDomain(Domain):
             return self.database.answer_query(hostname, value_type)
     
 class SecondaryDomain(Domain):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, name):
+        super().__init__(name)
         self.primaryServer = None
         self.dnsEntries = None
     

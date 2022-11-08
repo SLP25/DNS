@@ -17,56 +17,68 @@ class EntryType(Enum):
     MX = 9
     PTR = 10
     
-    def parameter_is_domain(self):
-        return self != EntryType.PTR
+    def supports_priority(self):
+        return self == EntryType.NS or self == EntryType.A or self == EntryType.MX
     
     def validate_parameter(self, parameter):
-        if self.parameter_is_domain():
-            if not re.search(f'^{utils.DOMAIN}$', parameter):
-                raise InvalidDNSEntryException('parameter is not a valid domain name')
-        else:   #parameter is ip address
+        if self == EntryType.PTR:
             if not re.search(f'^{utils.IP_ADDRESS}$', parameter):
-                raise InvalidDNSEntryException('parameter is not a valid IPv4 address')
+                raise InvalidDNSEntryException(f'{parameter} is not a valid IPv4 address')
+        elif self == EntryType.CNAME:
+            if not re.search(f'^{utils.DOMAIN}$', parameter):
+                raise InvalidDNSEntryException(f'{parameter} is not a valid domain name')
+        else:
+            if not re.search(f'^{utils.FULL_DOMAIN}$', parameter):
+                raise InvalidDNSEntryException(f'{parameter} is not a valid full domain name')
     
     def validate_value(self, value):
-        if self == EntryType.SOASP or self == EntryType.NS or self == EntryType.MX or self == EntryType.PTR:
+        if self == EntryType.SOASP or self == EntryType.NS or self == EntryType.PTR:
+            if not re.search(f'^{utils.FULL_DOMAIN}$', value):
+                raise InvalidDNSEntryException(f'{value} is not a valid full domain name')
+        elif self == EntryType.MX or self == EntryType.CNAME:
             if not re.search(f'^{utils.DOMAIN}$', value):
-                raise InvalidDNSEntryException('value is not a valid domain name')
+                raise InvalidDNSEntryException(f'{value} is not a valid domain name')
         elif self == EntryType.A:
             if not re.search(f'^{utils.IP_ADDRESS}$', value):
-                raise InvalidDNSEntryException('value is not a valid IPv4 address')
+                raise InvalidDNSEntryException(f'{value} is not a valid IPv4 address')
         elif self == EntryType.SOAADMIN:
             if not re.search(f'^{utils.EMAIL_ADDRESS}$', value):
-                raise InvalidDNSEntryException('value is not a valid email address')
-        else:   #value is an unsigned integer
-            if not re.search('^\d+$', value):
-                raise InvalidDNSEntryException('value is not an unsigned integer')
+                raise InvalidDNSEntryException(f'{value} is not a valid email address')
     
     @staticmethod
     def get_all():
         return [e.name for e in EntryType]
     
 
-ENTRY_TYPE = f'({"|".join(EntryType.get_all())})'
+ENTRY_TYPE = f'{"|".join(EntryType.get_all())}'
 
 class DNSEntry:
-    def __init__(self, parameter, type, value, ttl, priority = 0):
-
+    def __init__(self, parameter, type, value, ttl, priority = None):
+        
+        type.validate_parameter(parameter)
+        type.validate_value(value)
+        
+        if ttl < 0:
+            raise InvalidDNSEntryException(f"TTL ({ttl}) must be positive")
+        
+        if priority != None and not type.supports_priority:
+            raise InvalidDNSEntryException(f"DNS EntryType {type} doesn't support priority")
+        
+        if priority == None and type.supports_priority:
+            priority = 0
+            
+        if priority < 0 or priority > 255:
+            raise InvalidDNSEntryException(f"Priority {priority} must be between 0 and 255")
+        
         self.parameter = parameter
         self.type = type
         self.value = value
         self.ttl = ttl
         self.priority = priority
-
-        self.type.validate_parameter(parameter)
-        self.type.validate_value(value)
-        
-        if self.priority >= 256:
-            raise InvalidDNSEntryException("Priority must be between 0 and 255")
         
        
     @staticmethod     
-    def from_text(parameter, type, value, ttl, priority = '0'):
+    def from_text(parameter, type, value, ttl, priority = None):
         _parameter = parameter
         _value = value
         
@@ -77,7 +89,7 @@ class DNSEntry:
         
         try:
             _ttl = int(ttl)
-            _priority = int(priority)
+            _priority = None if priority == None else int(priority)
         except ValueError:
             raise InvalidDNSEntryException("TTL and priority must be integers")
         
@@ -86,9 +98,6 @@ class DNSEntry:
     @staticmethod
     def from_bytes(data):
         ...
-
-    def __validate_entry__(self):
-        return None
 
     def to_bytes__(self):
         return []

@@ -1,12 +1,17 @@
-DOMAIN_CHAR = '[a-zA-Z0-9\-]'
-DOMAIN = f'({DOMAIN_CHAR}+\.)*{DOMAIN_CHAR}*\.'
-DOMAIN_STEP = f'[^\.]{DOMAIN_CHAR}+[\.$]'
+COMMENT_LINE = r'^\s*(#|$)'
 
-EMAIL_CHAR = '[A-Za-z0-9_%+-]' #dot is also supported, but must be preceeded by escape
-EMAIL_ADDRESS = f'({EMAIL_CHAR}+\\\.)*{EMAIL_CHAR}+\.({DOMAIN_CHAR}+\.)+'
+DOMAIN_CHAR = r'[a-zA-Z0-9\-]'
+DOMAIN = f'({DOMAIN_CHAR}+\.)*{DOMAIN_CHAR}*'
+FULL_DOMAIN = f'({DOMAIN_CHAR}+\.)+'
 
-BYTE_RANGE = '([0-1]?[0-9]?[0-9]?|2[0-4][0-9]|25[0-5])'
+EMAIL_CHAR = r'[A-Za-z0-9_%+-]' #dot is also supported, but must be preceeded by escape
+EMAIL_ADDRESS = f'({EMAIL_CHAR}+\\\\\.)*{EMAIL_CHAR}+\.({DOMAIN_CHAR}+\.)+'
+
+BYTE_RANGE = r'([0-1]?\d{0,2}|2[0-4]\d|25[0-5])'
+PORT_RANGE = r'([0-5]?\d{0,4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])'
 IP_ADDRESS = f'({BYTE_RANGE}\.){{3}}{BYTE_RANGE}'
+IP_AND_PORT = f'{IP_ADDRESS}:{PORT_RANGE}'
+IP_MAYBE_PORT = f'{IP_ADDRESS}(:{PORT_RANGE})?' #TODO: trocar ips para ip&port e ipmaybeport
 
 #domain must be lowercase and fit DOMAIN
 #the return value starts from the top domain and goes down the hierarchy

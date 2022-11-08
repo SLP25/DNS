@@ -2,7 +2,7 @@ from enum import Enum
 from .exceptions import InvalidConfigFileException, NoConfigFileException
 from common.dnsEntry import DNSEntry
 import common.utils as utils
-from domain import Domain
+from .domain import Domain, PrimaryDomain, SecondaryDomain
 import re
 
 
@@ -31,10 +31,8 @@ class ServerConfig:
 
         try:
             with open(filePath, "r") as file:
-                lines = file.readlines()
-
-                for line in lines:
-                    self.__parseLine__(line)
+                for line in file.readlines():
+                    self.__parseLine__(line.rstrip('\n'))
                     
                 if self.logFiles == []:
                     raise InvalidConfigFileException("No global log files specified")
@@ -84,18 +82,26 @@ class ServerConfig:
     #if a domain with the same name but wrong primary status exists, an error is raised
     def get_domain(self, domain_name, primary = None):
         domain_name = domain_name.lower()
-        d = self.domains[domain_name]
         
-        if d == None:
+        if domain_name not in self.domains:
             if primary == None:
                 raise InvalidConfigFileException(domain_name + " domain doesn't exist")
             
-            d = Domain(domain_name, primary)
+            if primary:
+                d = PrimaryDomain(domain_name)
+            else:
+                d = SecondaryDomain(domain_name)
+
             self.domains[domain_name] = d
-            
-        if d.primary != primary:
-            raise InvalidConfigFileException(domain_name + " domain is treated as both SP and SS")
-        
+        else:
+            d = self.domains[domain_name]
+
+            if primary != None:
+                if primary and isinstance(d, SecondaryDomain):
+                    raise InvalidConfigFileException(f"Secondary domain {domain_name} is treated as a primary domain")
+                if not primary and isinstance(d, PrimaryDomain):
+                    raise InvalidConfigFileException(f"Primary domain {domain_name} is treated as a secondary domain")
+         
         return d
     
     def get_primary_domains(self):
@@ -105,14 +111,16 @@ class ServerConfig:
         return filter(lambda d: not d.primary, self.domains)
     
     def __parseLine__(self, line):
-        if re.search('(^$)|(^\s#)', line):
+        if re.search(utils.COMMENT_LINE, line):
             return
 
-        match = re.search(f'^\s*({utils.DOMAIN})\s+({CONFIG_TYPE})\s+(.+?)\s*$', line)
+        match = re.search(f'^\s*(?P<d>{utils.DOMAIN})\s+(?P<t>{CONFIG_TYPE})\s+(?P<v>[^\s]+)\s*$', line)
         if match == None:
-            raise InvalidConfigFileException(line + " doesn't match the pattern \{domain\} \{ConfigType\} \{data\}")
+            raise InvalidConfigFileException(f"{line} doesn't match the pattern {{domain}} {{ConfigType}} {{data}}")
         
-        domain, valueType, data = match.group(1).lower(), match.group(2), match.group(3)
+        domain = match.group('d').lower()
+        valueType = match.group('t')
+        data = match.group('v')
 
         try:
             lineType = ConfigType[valueType]
