@@ -18,7 +18,11 @@ import sys
 
 class Server:
     
-    def process_message(message, address):
+    def __init__(self, config_file):
+        self.config = ServerConfig(config_file)
+    
+    
+    def process_message(self, message, address):
         packet=DNSPacket().from_str(message)
         #TODO: pesquisar em cache
         
@@ -46,15 +50,11 @@ class Server:
                 self.server.send(message,address) #devolve o proximo a contactar/resposta
         #else enviar packet com erro  
             
-        
-        
-        
-        
 
 
         pass
 
-    def run():
+    def run(self):
         '''
         Main server loop
         Receives DNS queries, and calls the processing function
@@ -63,50 +63,50 @@ class Server:
 
         while(True):
             msg, address =  self.server.receive()
-            process_message(msg, address)
+            self.process_message(msg, address)
     
-    def extract_flag(flag):
-        '''
-        Extracts the value of the given flag in the system arguments
+def extract_flag(flag):
+    '''
+    Extracts the value of the given flag in the system arguments
 
-        Parameters:
-        flag: a string containing the flag to extract (format -<flag>)
+    Parameters:
+    flag: a string containing the flag to extract (format -<flag>)
 
-        Example:
+    Example:
 
-        For example, if the process is called with ("-p 5000") this function
-        will return "5000" (as a string)
-        '''
-        index = sys.argv.index(flag)
-        return sys.argv[index + 1]
+    For example, if the process is called with ("-p 5000") this function
+    will return "5000" (as a string)
+    '''
+    index = sys.argv.index(flag)
+    return sys.argv[index + 1]
 
-    def main():
-        '''
-        The entry point for the server. Parses the program arguments
-        and sets the global configuration
+def main():        
+    '''
+    The entry point for the server. Parses the program arguments
+    and sets the global configuration
 
-        The server receives the following arguments:
-        -p : The port to listen to UDP datagrams on
-        -t : The number of seconds to wait for the response to a query
-        -c : The path to the configuration file
-        -d : If the server is in debug mode
-        '''
-        global debug
-        debug = "-d" in sys.argv
+    The server receives the following arguments:
+    -p : The port to listen to UDP datagrams on
+    -t : The number of seconds to wait for the response to a query
+    -c : The path to the configuration file
+    -d : If the server is in debug mode
+    '''
+    global debug
+    debug = "-d" in sys.argv
 
-        global port
-        port = int(extract_flag("-p"))
-        if port < 0 or port > 65635:
-            exit(1)
+    global port
+    port = int(extract_flag("-p"))
+    if port < 0 or port > 65635:
+        print("Invalid port")
+        exit(1)
 
-        global timeout
-        timeout = int(extract_flag("-t"))
+    global timeout
+    timeout = int(extract_flag("-t"))
 
-        #Config
-        config_file = extract_flag("-c")
-        self.config=ServerConfig(config_file)
-
-        run()
+    #Config
+    config_file = extract_flag("-c")
+    server = Server(config_file)
+    server.run()
     
 if __name__ == "__main__":
-    Server().main()
+    main()
