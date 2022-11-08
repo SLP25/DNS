@@ -83,8 +83,13 @@ class DNSPacket:
                 self.numberOfExtraValues,
             ]
             return ','.join(str(element) for element in elements)+';'
-        def toBytes(self):
+        
+        def fromBytes(self):
             pass
+        
+        
+        def toBits(self):
+            return f"{self.id:016b}{'Q' in self.flags:1b}{'R' in self.flags:1b}{'A' in self.flags:1b}{self.responseCode:02b}{self.numberOfValues:08b}{self.numberOfAuthorities:08b}{self.numberOfExtraValues:08b}"
         
         def from_str(self,data:str):
             header=data.split(',')
