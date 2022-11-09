@@ -3,6 +3,7 @@ import enum
 from exceptions import MainLoggerNotIniciatedException,LoggerNotIniciatedException
 import datetime
 import time
+import sys
 
 class LoggingEntryType(enum):
     QR=0#data = PDU DATA
@@ -23,6 +24,9 @@ class Logging:
     mainLogger=None
     domains={}
     
+    def __init__(self,debug=False):
+        self.debug=debug
+    
     def __setup_logger__(self,name, log_file):
         """creates a logger with a given name
         or the root logger if no name is givver
@@ -32,18 +36,25 @@ class Logging:
             name (str): name of the logger (root logger if None)
             log_file (str): path to the log file
         """
-        handler = logging.FileHandler(log_file) 
         if name==None:
-            logger = logging.getLogger()
+            if self.mainLogger==None:
+                logger = logging.getLogger()
+            else:
+                logger  = self.mainLogger
+        elif name in self.domains:
+            logger=self.domains[name]
         else:
             logger = logging.getLogger(name)
-        logger.addHandler(handler)
+            
+        handlerF = logging.FileHandler(log_file)    
+        logger.addHandler(handlerF)
+        if self.debug:
+            handlerC = logging.StreamHandler(sys.stdout) 
+            logger.addHandler(handlerC)
         if name==None:
             self.mainLogger=logger
         else:
             self.domains[name]=logger
-        
-        self.mainLogger=logger
     
     def setupLogger(self,filename:str,domain:str,isRoot=False):
         """
