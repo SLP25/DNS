@@ -1,0 +1,8 @@
+@ DEFAULT slp.
+TTL DEFAULT 600
+
+mindflayer. NS 10.2.2.3:4400 TTL 1
+mindflayer. NS 10.2.2.2:4400 TTL 2
+mindflayer. NS 10.2.2.1:4400 TTL 3
+
+djinn CNAME sheoldred.batata TTL

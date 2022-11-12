@@ -1,0 +1,7 @@
+@ DEFAULT sheoldred.batata.
+TTL DEFAULT 600
+
+@ A 141.67.43.181 TTL
+
+deathtouch A 201.143.143.141 TTL
+black A 139.122.12.250 TTL
