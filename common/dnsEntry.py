@@ -54,10 +54,6 @@ ENTRY_TYPE = f'{"|".join(EntryType.get_all())}'
 
 class DNSEntry:
     def __init__(self, parameter, type, value, ttl, priority = None):
-        
-        type.validate_parameter(parameter)
-        type.validate_value(value)
-        
         if ttl < 0:
             raise InvalidDNSEntryException(f"TTL ({ttl}) must be positive")
         
@@ -70,18 +66,18 @@ class DNSEntry:
         if priority < 0 or priority > 255:
             raise InvalidDNSEntryException(f"Priority {priority} must be between 0 and 255")
         
-        self.parameter = parameter
+        self.parameter = parameter.lower()
         self.type = type
-        self.value = value
+        self.value = value.lower()
         self.ttl = ttl
         self.priority = priority
+        
+        type.validate_parameter(self.parameter)
+        type.validate_value(self.value)
         
        
     @staticmethod     
     def from_text(parameter, type, value, ttl, priority = None):
-        _parameter = parameter
-        _value = value
-        
         try:
             _type = EntryType[type]
         except ValueError:
@@ -93,14 +89,31 @@ class DNSEntry:
         except ValueError:
             raise InvalidDNSEntryException("TTL and priority must be integers")
         
-        return DNSEntry(_parameter, _type, _value, _ttl, _priority)
+        return DNSEntry(parameter, _type, value, _ttl, _priority)
             
     @staticmethod
     def from_bytes(data):
-        ...
+        pos = 0
+        
+        parameter = utils.bytes_to_string(data, pos)
+        pos += len(parameter) + 1
+        
+        type = utils.bytes_to_int(data, 1, pos)
+        pos += 1
+        
+        value = utils.bytes_to_string(data, pos)
+        pos += len(value) + 1
+        
+        ttl = utils.bytes_to_int(data, 4, pos)
+        pos += 4
+        
+        priority = utils.bytes_to_int(data, 1, pos)
+        pos += 1
+        
+        return DNSEntry(parameter, type, value, ttl, priority)
 
     def to_bytes__(self):
-        return []
+        return utils.string_to_bytes(self.parameter) + utils.int_to_bytes(self.type.value, 1) + utils.string_to_bytes(self.value) + utils.int_to_bytes(self.ttl.value, 4) + utils.int_to_bytes(self.priority.value, 1)
 
     def __str__(self):
         return f"{self.parameter} {self.type.name} {self.value} {self.ttl} {self.priority}"

@@ -30,18 +30,18 @@ Max zone transfer packet size in bytes
 maxSize = 1024
 
 #TODO: Validate request
-def processPacket(serverConfig, packet):
+def processPacket(serverData, packet):
     """
     Given a packet an SP received from an SS, computes the packet(s) to send back
     in response. Auxiliary function for zoneTransferSP
 
     Arguments:
 
-    serverConfig : ServerConfig -> the configuration of the server
+    serverData : ServerData -> the configuration of the server
     packet : ZoneTransferPacket -> the packet received
     """
     
-    domain = serverConfig.get_domain(packet.data, True)
+    domain = serverData.get_domain(packet.data, True)
     entries = domain.get_entries()
     
     if packet.sequenceNumber == SequenceNumber(0):
@@ -61,14 +61,14 @@ def processPacket(serverConfig, packet):
     if packet.sequenceNumber == SequenceNumber(6):
         return [ZoneTransferPacket(SequenceNumber(7), ZoneStatus(0), None)]
 
-def zoneTransferSP(serverConfig, localIP, port):
+def zoneTransferSP(serverData, localIP, port):
     """
     Function implementing the zone transfer protocol from the point of view of an
     SP.
 
     Arguments:
     
-    serverConfig : ServerConfig -> the configuration of the server
+    serverData : ServerData -> the configuration of the server
     localIP      : String       -> The IP where the TCP socket will be binded
     port         : int          -> The port to listen on
     """
@@ -82,13 +82,13 @@ def zoneTransferSP(serverConfig, localIP, port):
         while True:
             clientConnected = TCPClient(tcpSocket.accept(), ZoneTransferPacket.split_messages, maxSize)
 
-            #TODO: check if client is authorized (client_ip in serverConfig.get_domain(domain_name, True).authorizedSS)
+            #TODO: check if client is authorized (client_ip in serverData.get_domain(domain_name, True).authorizedSS)
 
             for i in range(4):
                 data = clientConnected.read()
                 packet = ZoneTransferPacket.from_str(data.decode())
                 print(str(packet))
-                response_packets = processPacket(serverConfig, packet)
+                response_packets = processPacket(serverData, packet)
                 for response_packet in response_packets:
                     print(str(response_packet))
                     clientConnected.write(str(response_packet).encode())
@@ -207,17 +207,17 @@ def receiveEndOfTransfer(tcpSocket):
     """
     tcpSocket.recv(maxSize)
 
-def zoneTransferSS(serverConfig):
+def zoneTransferSS(serverData):
     """
     Function implementing the zone transfer protocol from the point of view of an
     SS.
 
     Arguments:
     
-    serverConfig : ServerConfig -> The configuration of the server
+    serverData : ServerData -> The configuration of the server
     """
     while True:
-        for domain in serverConfig.get_secondary_domains():
+        for domain in serverData.get_secondary_domains():
             # Create a TCP/IP socket
             tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tcpSocket.connect(domain.primaryServer)

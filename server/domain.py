@@ -1,31 +1,33 @@
-from common.dnsEntry import DNSEntry
+from common.dnsEntry import DNSEntry, EntryType
+from common.query import QueryInfo
+from common.query import QueryResponse
 from server.exceptions import InvalidConfigFileException
 import re
 import common.utils as utils
 from server.database import Database
 
 class Domain:
-    def __init__(self, name):
+    def __init__(self, name:str):
         self.name = name
-        self.logFiles = []   #allow only one???
+        self.logFiles = []
     
         
-    def add_log_file(self, log_file): #TODO: check value/open file immediately
+    def add_log_file(self, log_file:str): #TODO: check value/open file immediately
         self.logFiles.append(log_file)
         
 class PrimaryDomain(Domain):
-    def __init__(self, name):
+    def __init__(self, name:str):
         super().__init__(name)
         self.authorizedSS = []
         self.database = None
         
-    def set_databse(self, path):        
+    def set_databse(self, path:str):        
         if self.database != None:
             raise InvalidConfigFileException("Duplicated DB for domain " + self.name)
         
         self.database = Database(path)
         
-    def add_authorizedSS(self, authorizedSS):  
+    def add_authorizedSS(self, authorizedSS:str):  
         if not re.search(f'^{utils.IP_MAYBE_PORT}$', authorizedSS):
             raise InvalidConfigFileException(f"Invalid ip address {authorizedSS}")
         
@@ -34,20 +36,18 @@ class PrimaryDomain(Domain):
     def validate(self):
         if self.database == None:
             raise InvalidConfigFileException("No database file specified for primary domain " + self.name)
-        
-    def get_entries(self):
-        return self.database.entries
     
-    def answer_query(self, hostname, value_type):
-            return self.database.answer_query(hostname, value_type)
+    def answer_query(self, query:QueryInfo):
+            return self.database.answer_query(query)
     
 class SecondaryDomain(Domain):
-    def __init__(self, name):
+    def __init__(self, name:str):
         super().__init__(name)
         self.primaryServer = None
+        self.aliases = None
         self.dnsEntries = None
     
-    def set_primary_server(self, primary_server):        
+    def set_primary_server(self, primary_server:str):
         if self.primaryServer != None:
             raise InvalidConfigFileException("Duplicated SP for domain " + self.name)
         
@@ -55,9 +55,9 @@ class SecondaryDomain(Domain):
             raise InvalidConfigFileException(f"Invalid ip address {primary_server}")
         
         #split = data.split(":")
-        #TODO: Throw exception if invalid ip:port
+        #Throw exception if invalid ip:port
         #self.primaryDomains[domain]=(split[0], int(split[1]))
-        #self.primaryServer = primary_server
+        self.primaryServer = primary_server
         
     def validate(self):
         if self.primaryServer == None:
@@ -74,13 +74,21 @@ class SecondaryDomain(Domain):
         and inserts the new ones in their place
 
         Arguments:
-        new_entries : Dict (Domain : String, Type : EntryType) => DNSEntry -> A dict with the new entries
+        new_entries : List (DNSEntry) -> A list with the new entries
         """
     def set_entries(self, new_entries):
         self.dnsEntries = new_entries
-        
-    def get_entries(self):
-        return self.dnsEntries
+        self.aliases = {}
+        for e in self.dnsEntries:
+            if e.type == EntryType.CNAME:
+                self.aliases[e.parameter] = e.value
     
-    def answer_query(self, hostname, value_type):
-        return self.dnsEntries.filter(lambda e: e.type == value_type and e.parameter == hostname)
+    #TODO: Thread safety
+    def answer_query(self, query:QueryInfo):
+        hostname = self.__replace_aliases__(query.name)
+        return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.entries, True)
+    
+    def __replace_aliases__(self, domain:str):
+        for k,v in self.macros.items():
+            domain = domain.replace(k, v)
+        return domain

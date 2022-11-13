@@ -1,5 +1,5 @@
 from server.zoneTransfer import zoneTransferSS
-from server.serverConfig import ServerConfig
+from server.serverData import ServerData
 
-config = ServerConfig("config/ss.conf")
+config = ServerData("config/ss.conf")
 zoneTransferSS(config)

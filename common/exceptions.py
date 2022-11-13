@@ -11,6 +11,12 @@ class InvalidDNSEntryException(Exception):
     '''
     pass
 
+class InvalidDNSMessageException(Exception):
+    '''
+    The given DNS message is not valid. Thrown when attempting
+    to parse raw data (string or bytes) to DNSMessage
+    '''
+
 class MainLoggerNotIniciatedException(Exception):
     '''
     The main logger was not initiated before trying to log data.
