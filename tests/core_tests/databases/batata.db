@@ -1,0 +1,10 @@
+@ DEFAULT batata.
+TTL DEFAULT 600
+
+sheoldred. NS 10.2.2.3:4200 TTL 1
+sheoldred. NS 10.2.2.2:4200 TTL 2
+sheoldred. NS 10.2.2.1:4200 TTL 3
+
+connive CNAME mindflayer.slp TTL
+
+@ A 186.55.231.105 TTL

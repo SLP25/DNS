@@ -1,0 +1,7 @@
+@ DEFAULT mindflayer.slp.
+TTL DEFAULT 600
+
+@ A 206.187.221.52 TTL
+
+foretell A 230.193.8.83 TTL
+blue A 44.14.19.79 TTL
