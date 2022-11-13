@@ -27,23 +27,29 @@ class EntryType(Enum):
         elif self == EntryType.CNAME:
             if not re.search(f'^{utils.DOMAIN}$', parameter):
                 raise InvalidDNSEntryException(f'{parameter} is not a valid domain name')
+            value = value.lower()
         else:
             if not re.search(f'^{utils.FULL_DOMAIN}$', parameter):
                 raise InvalidDNSEntryException(f'{parameter} is not a valid full domain name')
+            value = value.lower()
+        return value
     
     def validate_value(self, value):
         if self == EntryType.SOASP or self == EntryType.NS or self == EntryType.PTR:
             if not re.search(f'^{utils.FULL_DOMAIN}$', value):
                 raise InvalidDNSEntryException(f'{value} is not a valid full domain name')
+            value = value.lower()
         elif self == EntryType.MX or self == EntryType.CNAME:
             if not re.search(f'^{utils.DOMAIN}$', value):
                 raise InvalidDNSEntryException(f'{value} is not a valid domain name')
+            value = value.lower()
         elif self == EntryType.A:
             if not re.search(f'^{utils.IP_ADDRESS}$', value):
                 raise InvalidDNSEntryException(f'{value} is not a valid IPv4 address')
         elif self == EntryType.SOAADMIN:
             if not re.search(f'^{utils.EMAIL_ADDRESS}$', value):
                 raise InvalidDNSEntryException(f'{value} is not a valid email address')
+        return value
     
     @staticmethod
     def get_all():
@@ -66,15 +72,11 @@ class DNSEntry:
         if priority < 0 or priority > 255:
             raise InvalidDNSEntryException(f"Priority {priority} must be between 0 and 255")
         
-        self.parameter = parameter.lower()
+        self.parameter = type.validate_parameter(parameter)
         self.type = type
-        self.value = value.lower()
+        self.value = type.validate_value(value)
         self.ttl = ttl
         self.priority = priority
-        
-        type.validate_parameter(self.parameter)
-        type.validate_value(self.value)
-        
        
     @staticmethod     
     def from_text(parameter, type, value, ttl, priority = None):

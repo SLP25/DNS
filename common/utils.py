@@ -1,7 +1,7 @@
 COMMENT_LINE = r'^\s*(#|$)'
 
 DOMAIN_CHAR = r'[a-zA-Z0-9\-]'
-DOMAIN = f'({DOMAIN_CHAR}+\.)*{DOMAIN_CHAR}*'
+DOMAIN = f'({DOMAIN_CHAR}+\.)*{DOMAIN_CHAR}+'
 FULL_DOMAIN = f'({DOMAIN_CHAR}+\.)+'
 
 EMAIL_CHAR = r'[A-Za-z0-9_%+-]' #dot is also supported, but must be preceeded by escape
@@ -19,6 +19,13 @@ IP_MAYBE_PORT = f'(?P<ip>{IP_ADDRESS})(:(?P<port>{PORT_RANGE}))?' #TODO: trocar 
 flat_map = lambda f, xs: (y for ys in xs for y in f(ys))
 
 
+#the string is converted to lowercase
+#also, if the domain doesn't end in . it is appended
+def normalize_domain(domain:str):
+    if domain == '':
+        return '.'
+    
+    return (domain if domain[-1] == '.' else domain + '.').lower()
 
 #domain must be lowercase and match DOMAIN
 #the return value starts from the top domain and goes down the hierarchy

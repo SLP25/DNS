@@ -18,7 +18,6 @@ class Database:
         try:
             with open(path,'r') as file:
                 lines = file.readlines()
-                
         except:
             raise InvalidConfigFileException(f"invalid database file {path}")
         

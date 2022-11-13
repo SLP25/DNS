@@ -74,6 +74,8 @@ class ServerData:
     #fetches the domain with the given name and primary status
     #if it doesn't exist, it is created. if the primary status isn't specified, an error is raised
     #if a domain with the same name but wrong primary status exists, an error is raised
+    #TODO: domains vs full_domains
+    #TODO: root
     def get_domain(self, domain_name:str, primary = None):
         domain_name = domain_name.lower()
         if domain_name not in self.domains:
@@ -107,11 +109,11 @@ class ServerData:
         if re.search(utils.COMMENT_LINE, line):
             return
 
-        match = re.search(f'^\s*(?P<d>{utils.DOMAIN})\s+(?P<t>{CONFIG_TYPE})\s+(?P<v>[^\s]+)\s*$', line)
+        match = re.search(f'^\s*(?P<d>{utils.DOMAIN}|\.)\s+(?P<t>{CONFIG_TYPE})\s+(?P<v>[^\s]+)\s*$', line)
         if match == None:
             raise InvalidConfigFileException(f"{line} doesn't match the pattern {{domain}} {{ConfigType}} {{data}}")
         
-        domain = match.group('d').lower()
+        domain = utils.normalize_domain(match.group('d'))
         valueType = match.group('t')
         data = match.group('v')
 
