@@ -20,9 +20,9 @@ class Cache:
         self.lines.append(CacheLine(dnsEntry, time.time() + dnsEntry.ttl))
         
     def query(self, query:QueryInfo):
-        time = time.time()
-        self.lines = filter(lambda l: l.limitDate < time, self.lines)
-        return QueryResponse.from_entries(query, map(lambda l: l.dnsEntry, self.lines), False)
+        cur_time = time.time()
+        self.lines = list(filter(lambda l: l.limitDate < cur_time, self.lines))
+        return QueryResponse.from_entries(query, [l.dnsEntry for l in self.lines], False)
     
     def add_response(self, response:QueryResponse):
         for entry in itertools.chain(response.values, response.authorities, response.extra_values):

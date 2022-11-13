@@ -2,7 +2,7 @@ COMMENT_LINE = r'^\s*(#|$)'
 
 DOMAIN_CHAR = r'[a-zA-Z0-9\-]'
 DOMAIN = f'({DOMAIN_CHAR}+\.)*{DOMAIN_CHAR}+'
-FULL_DOMAIN = f'({DOMAIN_CHAR}+\.)+'
+FULL_DOMAIN = f'(({DOMAIN_CHAR}+\.)+|\.)'
 
 EMAIL_CHAR = r'[A-Za-z0-9_%+-]' #dot is also supported, but must be preceeded by escape
 EMAIL_ADDRESS = f'({EMAIL_CHAR}+\\\\\.)*{EMAIL_CHAR}+\.({DOMAIN_CHAR}+\.)+'
@@ -11,8 +11,10 @@ BYTE_RANGE = r'([0-1]?\d{0,2}|2[0-4]\d|25[0-5])'
 PORT_RANGE = r'([0-5]?\d{0,4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])'
 IP_ADDRESS = f'({BYTE_RANGE}\.){{3}}{BYTE_RANGE}'
 IP_AND_PORT = f'(?P<ip>{IP_ADDRESS}):(?P<port>{PORT_RANGE})'
-IP_MAYBE_PORT = f'(?P<ip>{IP_ADDRESS})(:(?P<port>{PORT_RANGE}))?' #TODO: trocar ips para ip&port e ipmaybeport
+IP_MAYBE_PORT = f'(?P<ip>{IP_ADDRESS})(:(?P<port>{PORT_RANGE}))?'
 
+
+DEFAULT_PORT = 53
 
 #Same as haskell's flatmap
 #Is lazy (returns a generator)
@@ -22,9 +24,6 @@ flat_map = lambda f, xs: (y for ys in xs for y in f(ys))
 #the string is converted to lowercase
 #also, if the domain doesn't end in . it is appended
 def normalize_domain(domain:str):
-    if domain == '':
-        return '.'
-    
     return (domain if domain[-1] == '.' else domain + '.').lower()
 
 #domain must be lowercase and match DOMAIN
@@ -33,7 +32,9 @@ def normalize_domain(domain:str):
 # example.com. -> ['com', 'example']
 # .            -> []
 def split_domain(domain:str):
-    return filter(None, domain.split('.')).reverse()
+    ans = list(filter(None, domain.split('.')))
+    ans.reverse()
+    return ans
 
 #domain and subdomain must be lowercase
 #if they are the same, returns True

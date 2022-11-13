@@ -37,7 +37,7 @@ class Database:
         if domain[-1] == '.':
             return domain
         
-        return domain + '.' + self.__get_origin__()
+        return domain + '.' + (self.__get_origin__() if self.__get_origin__() != '.' else '')
     
     def __replace_macros__(self, exp):
         for k,v in self.macros.items():
@@ -55,7 +55,7 @@ class Database:
         
         match = re.search(f'^\s*(?P<k>{PARAMETER_CHAR}+)\s+DEFAULT\s+(?P<v>[^\s]*)\s*$', line)
         if match != None:
-            if match.group('k') == '@' and not re.search(f'^{utils.FULL_DOMAIN}?$', match.group('v')):
+            if match.group('k') == '@' and not re.search(f'^{utils.FULL_DOMAIN}$', match.group('v')):
                 raise InvalidDatabaseException(f"{match.group('v')} isn't a valid dabatase origin (@)")
             self.macros[match.group('k')] = match.group('v')
             return
@@ -87,5 +87,5 @@ class Database:
         self.entries.append(ans)
     
     def answer_query(self, query:QueryInfo):
-        hostname = self.__replace_aliases__(hostname)
+        hostname = self.__replace_aliases__(query.name)
         return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.entries, True)

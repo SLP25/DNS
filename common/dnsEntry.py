@@ -27,19 +27,19 @@ class EntryType(Enum):
         elif self == EntryType.CNAME:
             if not re.search(f'^{utils.DOMAIN}$', parameter):
                 raise InvalidDNSEntryException(f'{parameter} is not a valid domain name')
-            value = value.lower()
+            parameter = parameter.lower()
         else:
             if not re.search(f'^{utils.FULL_DOMAIN}$', parameter):
                 raise InvalidDNSEntryException(f'{parameter} is not a valid full domain name')
-            value = value.lower()
-        return value
+            parameter = parameter.lower()
+        return parameter
     
     def validate_value(self, value):
-        if self == EntryType.SOASP or self == EntryType.NS or self == EntryType.PTR:
+        if self in [EntryType.SOASP, EntryType.NS, EntryType.PTR]:
             if not re.search(f'^{utils.FULL_DOMAIN}$', value):
                 raise InvalidDNSEntryException(f'{value} is not a valid full domain name')
             value = value.lower()
-        elif self == EntryType.MX or self == EntryType.CNAME:
+        elif self in [EntryType.MX, EntryType.CNAME]:
             if not re.search(f'^{utils.DOMAIN}$', value):
                 raise InvalidDNSEntryException(f'{value} is not a valid domain name')
             value = value.lower()

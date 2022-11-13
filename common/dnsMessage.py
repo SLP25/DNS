@@ -11,7 +11,7 @@ class DNSMessage:
     
     #wraps a query into a DNSMessage
     @staticmethod
-    def from_query(query:QueryInfo, recursive:bool, messageID = random.uniform(1,65356)):
+    def from_query(query:QueryInfo, recursive:bool, messageID = random.randrange(1,65356)):
         ans = DNSMessage()
         ans.messageID = messageID
         ans.query = query
@@ -24,7 +24,7 @@ class DNSMessage:
         ans.messageID = self.messageID
         ans.query = self.query
         ans.response = response
-        ans.response_code = 0 if response.positive() else 1 #2??? TODO: perguntar
+        ans.responseCode = 0 if response.positive() else 1 #2??? TODO: perguntar
         ans.supports_recursive = supports_recursive
         return ans
     
@@ -34,12 +34,12 @@ class DNSMessage:
         ans.messageID = self.messageID
         ans.query = self.query
         ans.response = QueryResponse()
-        ans.response_code = 3
+        ans.responseCode = 3
         ans.supports_recursive = supports_recursive
         return ans
         
     def is_query(self):
-        return self.response == None
+        return not hasattr(self, 'response')
     
     #if self is a query, indicates whether the query is recursive
     #if self is a response, indicates whether the server supports recursive mode
@@ -64,10 +64,10 @@ class DNSMessage:
     def __str__(self):
         ans = f'{self.messageID},' \
             + f'{self.__flags_as_string__()},' \
-            + f'{self.responseCode if self.is_query() else 0},' \
-            + f'{len(self.response.values) if self.is_query() else 0},' \
-            + f'{len(self.response.authorities) if self.is_query() else 0},' \
-            + f'{len(self.response.extra_values) if self.is_query() else 0};' \
+            + f'{self.responseCode if not self.is_query() else 0},' \
+            + f'{len(self.response.values) if not self.is_query() else 0},' \
+            + f'{len(self.response.authorities) if not self.is_query() else 0},' \
+            + f'{len(self.response.extra_values) if not self.is_query() else 0};' \
             + f'{self.query};'
         
         if not self.is_query():
@@ -85,7 +85,7 @@ class DNSMessage:
             raise InvalidDNSMessageException(f"{str} doesn't match the expected format")
 
         ans = DNSMessage()
-        ans.id = match.group('id')
+        ans.messageID = match.group('id')
         flag_q, flag_r, flag_a = __read_flags__(match.group('flags'))
         ans.query = QueryInfo(match.group('name'), EntryType[match.group('type')])
         body = str[match.end():]

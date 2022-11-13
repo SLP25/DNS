@@ -51,7 +51,7 @@ class SecondaryDomain(Domain):
         if self.primaryServer != None:
             raise InvalidConfigFileException("Duplicated SP for domain " + self.name)
         
-        if not re.search(f'^{utils.IP_ADDRESS}$', primary_server):
+        if not re.search(f'^{utils.IP_MAYBE_PORT}$', primary_server):
             raise InvalidConfigFileException(f"Invalid ip address {primary_server}")
         
         #split = data.split(":")

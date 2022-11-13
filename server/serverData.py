@@ -27,10 +27,10 @@ CONFIG_TYPE = f'({"|".join(ConfigType.get_all())})'
 
 class ServerData:
     def __init__(self, filePath:str):
-        self.domains = {} #TODO: separar em primary e secondary???
-        self.defaultServers = {} #domain:value
-        self.topServers = [] #ips
-        self.logFiles = []
+        self.domains = {}   #name:domain  #TODO: separar em primary e seconday??
+        self.defaultServers = {}    #domain:value
+        self.topServers = []    #ips
+        self.logFiles = []      #file names
 
         try:
             with open(filePath, "r") as file:
@@ -47,7 +47,7 @@ class ServerData:
             raise NoConfigFileException("Could not open " + filePath)
         
     def replaceDomainEntries(self, domain:str, newEntries):
-        self.get_domain(domain, False).set_entries(newEntries) #TODO: entries to lower case?
+        self.get_domain(domain, False).set_entries(newEntries)
         
     def get_log_files(self, domain_name:str):
         if domain_name not in self.domains:
@@ -59,7 +59,7 @@ class ServerData:
         else:
             return logs
         
-    def get_default_server(self, domain:str):   #TODO: returns all matches, ordered from most to least specific (+roots?)
+    def get_default_server(self, domain:str):   #TODO: return all matches, ordered from most to least specific (+roots?)
         d = utils.best_match(domain, self.defaultServers)
         if d:
             return self.defaultServers[d]
@@ -75,9 +75,8 @@ class ServerData:
     #if it doesn't exist, it is created. if the primary status isn't specified, an error is raised
     #if a domain with the same name but wrong primary status exists, an error is raised
     #TODO: domains vs full_domains
-    #TODO: root
     def get_domain(self, domain_name:str, primary = None):
-        domain_name = domain_name.lower()
+        domain_name = utils.normalize_domain(domain_name)
         if domain_name not in self.domains:
             if primary == None:
                 raise InvalidConfigFileException(f"Domain {domain_name} doesn't exist")
@@ -133,7 +132,7 @@ class ServerData:
                     raise InvalidConfigFileException(f"Invalid ip address {data}")
                 self.defaultServers[domain] = data
             elif lineType == ConfigType.ST:
-                if domain != 'root':
+                if domain != 'root.':
                     raise InvalidConfigFileException(f"ST parameter was {domain} expected root")
                 try:
                     with open(data,'r') as file:
@@ -141,7 +140,7 @@ class ServerData:
                 except:
                     raise InvalidConfigFileException(f"invalid ST file {data}")
             elif lineType == ConfigType.LG:
-                if domain == 'all':
+                if domain == 'all.':
                     self.logFiles.append(data) #TODO: check data
                 else:
                     self.get_domain(domain).add_log_file(data)

@@ -12,6 +12,7 @@ Date of Modification: 29/10/2022 18:05
 #TODO: Terminate on SIGINT/SIGTERM
 
 import random
+from common.query import QueryResponse
 from server.cache import Cache
 from common.dnsEntry import EntryType
 from common.udp import UDP
@@ -30,6 +31,11 @@ class Server:
         #TODO: init zone transfers
         
     def answers_query(self, query:QueryInfo):
+        '''
+        Determines whether the server should answer the specified query
+        If the server is a resolver (initialized with -r flag), it answers every query
+        Otherwise, only queries about certain domains (DD in config file) are answered
+        '''
         if self.resolver:
             return True
         
@@ -44,10 +50,10 @@ class Server:
         udp = UDP(localPort=port)   #TODO: use another port
         msg = DNSMessage.from_query(query, True)
         
-        udp.send(str(msg), address) #TODO: check debug mode (if off, send bytes instead of string)
+        udp.send(str(msg).encode(), address) #TODO: check debug mode (if off, send bytes instead of string)
         bytes, _ = udp.receive()
         
-        ans = DNSMessage.from_string(bytes) #TODO: check debug mode
+        ans = DNSMessage.from_string(bytes.decode()) #TODO: check debug mode
         return ans.response
     
     #returns the result of the first answered query, or None if none was answered
@@ -62,7 +68,7 @@ class Server:
         ans = self.answer_query(QueryInfo(hostname, EntryType.A), True)
         return ans.values if ans else []
     
-    #returns an instance of QueryResponse, or None if it wasn't possible to determine the answer
+    #returns an instance of QueryResponse
     #TODO: distinguish no response from domain doesn't exist
     def answer_query(self, query:QueryInfo, recursive:bool):
         ans = self.cache.query(query)           #try cache
@@ -77,44 +83,54 @@ class Server:
         #start search from the root/default servers
         default = self.config.get_default_server(query.name)
         next_dns = ([default] if default else []) + self.config.topServers
+        prev_ans = None
         
         while True:
             ans = self.query_all(next_dns, query)
             if not ans:     #can't contact anyone :(
-                return None
+                return prev_ans if prev_ans else QueryResponse()
             
             self.cache.add_response(ans)
-            if ans.positive() or not recursive:
+            if ans.positive() or not recursive:     #success!
                 return ans
         
+            prev_ans = ans  #store previous answer
+        
             #Query wasn't successful yet, so the next step is to contact the next dns in the hierarchy
-            #First order received authorities from most to least specific (assume all of them match)
+            #First, order received authorities from most to least specific (assume all of them match)
             ans.authorities.sort(reverse=True, key=lambda e: len(utils.split_domain(e.parameter)))
-            auths = map(lambda e: e.value, ans.authorities)                         #next get the hostname of their dns
+            auths = [e.value for e in ans.authorities]                              #next, get the hostname of their dns
             next_dns = utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
 
     
-    #returns the response message (string/bytes), or None if no response is to be given
     def process_message(self, message, address):
-        msg = DNSMessage().from_str(message)
+        '''
+        Processes the received message
+        Returns a response message, or None if the query shouldn't be answered (see answers_query())
+        '''
+        msg = DNSMessage().from_string(message.decode())
         
         if not self.answers_query(msg.query):
             return None
         
         ans = self.answer_query(msg.query, self.supports_recursive)
         if ans:
-            return str(msg.generate_response(ans, self.supports_recursive))
+            return str(msg.generate_response(ans, self.supports_recursive)).encode()
 
     def run(self):
         '''
         Main server loop
         Receives DNS queries, and calls the processing function
         '''
-        self.server = UDP(binding = True)
+        self.server = UDP(localPort=port,binding = True)
 
         while(True):
-            msg, address =  self.server.receive()
+            print("receiveing messages!")
+            msg, address = self.server.receive()
+            print("message received!")
+            print(msg)
             ans = self.process_message(msg, address)
+            print(ans)
             if ans:
                 self.server.send(ans, address)
     
