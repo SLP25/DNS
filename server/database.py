@@ -1,16 +1,33 @@
+"""
+File responsible for parsing and storing SP's databases
+
+Last Modification: Added documentation
+Date of Modification: 14/11/2022 12:03
+"""
+
 import re
 from common.query import QueryInfo
 from common.query import QueryResponse
 import common.utils as utils
-from common.dnsEntry import DNSEntry, ENTRY_TYPE
+from common.dnsEntry import DNSEntry, ENTRY_TYPE, PARAMETER_CHAR
 from server.exceptions import InvalidConfigFileException, InvalidDatabaseException
-
-PARAMETER_CHAR = '[a-zA-Z0-9.-@]'
 
 
 class Database:
+    """
+    Represents a SP's database
+    Contains the following attributes:
+        macros  -> Dict[str,str]
+        aliases -> Dict[str,str]
+        entries -> List[DNSEntry]
+    """
     
     def __init__(self, path:str):
+        """
+        Constructs a database from the given database file
+        If the path to the file is invalid, an InvalidConfigFileException is raised
+        If the parsing of the file fails, an InvalidDatabaseException is raised
+        """
         self.macros = {}
         self.aliases = {}
         self.entries = []
@@ -87,5 +104,9 @@ class Database:
         self.entries.append(ans)
     
     def answer_query(self, query:QueryInfo):
+        """
+        Answers the query with the available DNSEntry's
+        Returns a QueryResponse
+        """
         hostname = self.__replace_aliases__(query.name)
         return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.entries, True)

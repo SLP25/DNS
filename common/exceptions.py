@@ -1,8 +1,8 @@
 '''
 File defining custom exceptions used in the common codebase
 
-Last Modification: Documentation
-Date of Modification: 30/10/2022 11:57
+Last Modification: Added InvalidDNSMessageException
+Date of Modification: 10/11/2022 16:37
 '''
 class InvalidDNSEntryException(Exception):
     '''

@@ -1,10 +1,24 @@
+"""
+File containing classes DNSEntry and EntryType 
+
+Last Modification: Added documentation
+Date of Modification: 14/11/2022 11:11
+"""
+
 from enum import Enum
 import re
 from .exceptions import InvalidDNSEntryException
 import common.utils as utils
+from typing import Optional
 
 
 class EntryType(Enum):
+    """
+    Enum class, representing all possible types of dns entry
+    Note that DEFAULT isn't an entry type, even though it is present in the SP database file.
+    Rather, it alters other entries, but is transparent to the users
+    """
+    
     SOASP = 0
     SOAADMIN = 1
     SOASERIAL = 2
@@ -18,9 +32,18 @@ class EntryType(Enum):
     PTR = 10
     
     def supports_priority(self):
+        """
+        Whether DNSEntry's of this type support priority
+        """
         return self == EntryType.NS or self == EntryType.A or self == EntryType.MX
     
-    def validate_parameter(self, parameter):
+    def validate_parameter(self, parameter:str):
+        """
+        Validates the given string as a parameter of a DNSEntry of this type
+        If the given parameter is invalid, raises an InvalidDNSEntryException
+        Returns the validated parameter (this may be different from the received parameter if a
+        domain name is expected; in that case, the domain name is normalized - see utils.normalize_domain())
+        """
         if self == EntryType.PTR:
             if not re.search(f'^{utils.IP_ADDRESS}$', parameter):
                 raise InvalidDNSEntryException(f'{parameter} is not a valid IPv4 address')
@@ -34,7 +57,13 @@ class EntryType(Enum):
             parameter = parameter.lower()
         return parameter
     
-    def validate_value(self, value):
+    def validate_value(self, value:str):
+        """
+        Validates the given string as a value of a DNSEntry of this type
+        If the received value is invalid, raises an InvalidDNSEntryException
+        Returns the validated value (this may be different from the received value if a
+        domain name is expected; in that case, the domain name is normalized - see utils.normalize_domain())
+        """
         if self in [EntryType.SOASP, EntryType.NS, EntryType.PTR]:
             if not re.search(f'^{utils.FULL_DOMAIN}$', value):
                 raise InvalidDNSEntryException(f'{value} is not a valid full domain name')
@@ -53,20 +82,50 @@ class EntryType(Enum):
     
     @staticmethod
     def get_all():
+        """
+        Returns a list of all names of EntryTypes
+        """
         return [e.name for e in EntryType]
     
 
+"""
+A regex pattern that matches all names of EntryTypes
+"""
 ENTRY_TYPE = f'{"|".join(EntryType.get_all())}'
 
+"""
+Regex pattern that matchs valid characters for the parameter attribute of a DNSEntry 
+"""
+PARAMETER_CHAR = r'[a-zA-Z0-9.-@]'
+
 class DNSEntry:
-    def __init__(self, parameter, type, value, ttl, priority = None):
-        if ttl < 0:
-            raise InvalidDNSEntryException(f"TTL ({ttl}) must be positive")
+    """
+    Class representing a dns entry in SP databases, caches, etc
+    Is composed of 5 attributes: a parameter (usually a domain name), a type (EntryType),
+    a value, a TTL (unsigned integer) and a priority (integer between 0 and 255)
+    """
+    
+    def __init__(self, parameter:str, type:EntryType, value:str, ttl:int, priority:Optional[int] = None):
+        """
+        Constructs a DNSEntry. If any parameter is deemed invalid,
+        an InvalidDNSEntryException is raised
+
+        Arguments:
         
-        if priority != None and not type.supports_priority:
+        parameter : str         -> usually a domain name
+        type      : EntryType   -> the type of entry
+        value     : str
+        ttl       : int         -> unsigned
+        priority  : int/None    -> between 0 and 255. If None is passed, the default value 0 is used
+        """
+        
+        if ttl < 0:
+            raise InvalidDNSEntryException(f"TTL ({ttl}) must be non-negative")
+        
+        if priority != None and not type.supports_priority():
             raise InvalidDNSEntryException(f"DNS EntryType {type} doesn't support priority")
         
-        if priority == None and type.supports_priority:
+        if priority == None and type.supports_priority():
             priority = 0
             
         if priority < 0 or priority > 255:
@@ -79,7 +138,20 @@ class DNSEntry:
         self.priority = priority
        
     @staticmethod     
-    def from_text(parameter, type, value, ttl, priority = None):
+    def from_text(parameter:str, type:str, value:str, ttl:str, priority:Optional[str] = None):
+        """
+        Constructs a DNSEntry from string representations of each of the attributes
+        If any of the attributes is deemed invalid, an InvalidDNSEntryException is raised
+
+        Arguments:
+        
+        parameter : str         -> usually a domain name
+        type      : str         -> the name of the type of entry
+        value     : str
+        ttl       : int         -> unsigned
+        priority  : str/None    -> between 0 and 255. If None is passed, the default value 0 is used
+        """
+        
         try:
             _type = EntryType[type]
         except ValueError:
@@ -95,6 +167,10 @@ class DNSEntry:
             
     @staticmethod
     def from_bytes(data):
+        """
+        Constructs a DNSEntry from an array of bytes
+        If the parsing fails, an InvalidDNSEntryException is thrown
+        """
         pos = 0
         
         parameter = utils.bytes_to_string(data, pos)
@@ -115,7 +191,13 @@ class DNSEntry:
         return DNSEntry(parameter, type, value, ttl, priority)
 
     def to_bytes__(self):
+        """
+        Converts the current instance of DNSEntry to an array of bytes
+        """
         return utils.string_to_bytes(self.parameter) + utils.int_to_bytes(self.type.value, 1) + utils.string_to_bytes(self.value) + utils.int_to_bytes(self.ttl.value, 4) + utils.int_to_bytes(self.priority.value, 1)
 
     def __str__(self):
+        """
+        Converts the current instance of DNSEntry to its string representation
+        """
         return f"{self.parameter} {self.type.name} {self.value} {self.ttl} {self.priority}"

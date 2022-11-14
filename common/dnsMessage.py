@@ -1,3 +1,10 @@
+"""
+File defining the class DNSMessage
+
+Last Modification: Added documentation
+Date of Modification: 14/11/2022 11:31
+"""
+
 import random
 import re
 
@@ -8,18 +15,38 @@ import common.utils as utils
 from common.dnsEntry import ENTRY_TYPE
 
 class DNSMessage:
+    """
+    Class representing a dns message sent between servers asking and answering dns queries
+    Instances of DNSMessage have the following attributes:
+        messageID   -> int (between 1 and 65356)
+        query       -> QueryInfo
+
+    If the instance is a query:
+        recursive   -> bool
+        
+    If the instance is an answer:
+        response            -> QueryResponse
+        responseCode        -> int (between 0 and 3)
+        supports_recursive  -> bool
+    """
     
-    #wraps a query into a DNSMessage
     @staticmethod
-    def from_query(query:QueryInfo, recursive:bool, messageID = random.randrange(1,65356)):
+    def from_query(query:QueryInfo, recursive:bool, messageID:int = random.randrange(1,65356)):
+        """
+        Constructs a DNSMessage query from the given QueryInfo, recursive flag and messageID
+        """
         ans = DNSMessage()
         ans.messageID = messageID
         ans.query = query
         ans.recursive = recursive
         return ans
     
-    #creates a new DNSMessage that answers self
+
     def generate_response(self, response:QueryResponse, supports_recursive:bool):
+        """
+        Generates a response DNSMessage to the current instance using the
+        given QueryResponse and supports_recursive flag
+        """
         ans = DNSMessage()
         ans.messageID = self.messageID
         ans.query = self.query
@@ -28,8 +55,11 @@ class DNSMessage:
         ans.supports_recursive = supports_recursive
         return ans
     
-    #creates a new DNSMessage that answers self with an error
     def generate_error_response(self, supports_recursive:bool):
+        """
+        Generates an error response DNSMessage to the current instance (responseCode = 3)
+        using the given supports_recursive flag
+        """
         ans = DNSMessage()
         ans.messageID = self.messageID
         ans.query = self.query
@@ -39,11 +69,14 @@ class DNSMessage:
         return ans
         
     def is_query(self):
+        """
+        Returns whether the current instance is a query. If false, the instance is a response
+        """
         return not hasattr(self, 'response')
     
-    #if self is a query, indicates whether the query is recursive
+    #if self is a query, indicates whether
     #if self is a response, indicates whether the server supports recursive mode
-    def flag_recursive(self):
+    def __flag_recursive__(self):
         if self.is_query():
             return self.recursive
         else:
@@ -51,17 +84,21 @@ class DNSMessage:
         
     #if self is a query, returns False
     #if self is a response, indicates whether the response is authoritative
-    def flag_authoritative(self):
+    def _flag_authoritative__(self):
         if self.is_query():
             return False
         else:
             return self.response.authoritative
 
     def __flags_as_string__(self):
-        return '+'.join(f"{'Q' if self.is_query() else ''}{'R' if self.flag_recursive() else ''}{'A' if self.flag_authoritative() else ''}")
+        return '+'.join(f"{'Q' if self.is_query() else ''}{'R' if self.__flag_recursive__() else ''}{'A' if self._flag_authoritative__() else ''}")
 
 
     def __str__(self):
+        """
+        Determines the representation of the current instance as a string
+        (as of examples 5 and 6 of the statement)
+        """
         ans = f'{self.messageID},' \
             + f'{self.__flags_as_string__()},' \
             + f'{self.responseCode if not self.is_query() else 0},' \
@@ -80,6 +117,11 @@ class DNSMessage:
 
     @staticmethod
     def from_string(str):
+        """
+        Constructs an instance of DNSMessage from the given string representation
+        (as of examples 5 and 6 of the statement)
+        If the parsing fails, an InvalidDNSMessageException is raised
+        """
         match = re.search(f'^(?P<id>\d+),(?P<flags>[QRA](\+[QRA]){{0,2}})?,(?P<code>[0-3]),(?P<vals>\d+),(?P<auths>\d+),(?P<extras>\d+);(?P<name>{utils.FULL_DOMAIN}),(?P<type>{ENTRY_TYPE});', str)
         if not match:
             raise InvalidDNSMessageException(f"{str} doesn't match the expected format")
@@ -106,11 +148,18 @@ class DNSMessage:
         return ans
 
     def to_bytes(self):
+        """
+        Converts the current instance to an array of bytes
+        """
         #TODO using utils
         pass
 
     @staticmethod
     def from_bytes(bytes):
+        """
+        Constructs an instance of DNSMessage from an array of bytes
+        If the parsing fails, an InvalidDNSMessageException is raised
+        """
         #TODO using utils
         pass
 

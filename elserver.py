@@ -6,8 +6,8 @@ the server state accordingly. It also has the main function
 responsible for receiving and sending DNS messages. Processing is
 done in another file.
 
-Last modification: Creation
-Date of Modification: 29/10/2022 18:05
+Last modification: Added documentation
+Date of Modification: 14/11/2022 15:03
 '''
 #TODO: Terminate on SIGINT/SIGTERM
 
@@ -21,9 +21,16 @@ from server.serverData import ServerData
 import common.utils as utils
 import sys
 
+'''
+Represents a DNS Server, with its own cache and configuration data
+'''
 class Server:
     
-    def __init__(self, resolver, config_file):
+    def __init__(self, resolver:bool, config_file:str):
+        '''
+        Creates a new instance of the class with the given resolver status and
+        the given configuration file path
+        '''
         self.resolver = resolver
         self.supports_recursive = resolver
         self.config = ServerData(config_file)
@@ -33,6 +40,7 @@ class Server:
     def answers_query(self, query:QueryInfo):
         '''
         Determines whether the server should answer the specified query
+        
         If the server is a resolver (initialized with -r flag), it answers every query
         Otherwise, only queries about certain domains (DD in config file) are answered
         '''
@@ -47,31 +55,48 @@ class Server:
     
     #TODO: timeout
     def query(self, address, query:QueryInfo):
+        """
+        Queries the dns server in address with the given query
+        Returns the QueryResponse, or None if the request timed out or response failed to parse
+        """
         udp = UDP(localPort=port)   #TODO: use another port
         msg = DNSMessage.from_query(query, True)
         
         udp.send(str(msg).encode(), address) #TODO: check debug mode (if off, send bytes instead of string)
         bytes, _ = udp.receive()
         
-        ans = DNSMessage.from_string(bytes.decode()) #TODO: check debug mode
-        return ans.response
+        try:
+            ans = DNSMessage.from_string(bytes.decode()) #TODO: check debug mode
+            return ans.response
+        except:
+            return None
     
     #returns the result of the first answered query, or None if none was answered
     def query_all(self, addresses, query:QueryInfo):
+        """
+        Queries the dns servers listed in addresses with the given query
+        Returns the QueryResponse of the first answer, or None if none answered
+        """
         for a in addresses:
-            ans = self.query()
+            ans = self.query(a, query)
             if ans:
                 return ans
             
-    #returns a list of returned addresses
     def resolve_address(self, hostname):
+        """
+        For the given domain name, returns a list with the corresponding ip addresses
+        If the hostname can't be resolved, an empty list is returned
+        """
         ans = self.answer_query(QueryInfo(hostname, EntryType.A), True)
         return ans.values if ans else []
     
-    #returns an instance of QueryResponse
     #TODO: distinguish no response from domain doesn't exist
     def answer_query(self, query:QueryInfo, recursive:bool):
-        ans = self.cache.query(query)           #try cache
+        """
+        Given a query and whether to run recursively, returns an
+        answering QueryResponse or None if it isn't possible to answer
+        """
+        ans = self.cache.answer_query(query)           #try cache
         if ans.positive():
             return ans
         
@@ -81,8 +106,7 @@ class Server:
             return ans
         
         #start search from the root/default servers
-        default = self.config.get_default_server(query.name)
-        next_dns = ([default] if default else []) + self.config.topServers
+        next_dns = self.config.get_first_servers(query.name)
         prev_ans = None
         
         while True:
@@ -105,7 +129,7 @@ class Server:
     
     def process_message(self, message, address):
         '''
-        Processes the received message
+        Processes the received message from the given address
         Returns a response message, or None if the query shouldn't be answered (see answers_query())
         '''
         msg = DNSMessage().from_string(message.decode())
