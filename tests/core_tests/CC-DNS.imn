@@ -1,0 +1,1785 @@
+node n1 {
+    type router
+    model router
+    network-config {
+	hostname Router1
+	!
+	interface eth4
+	 ip address 10.0.12.1/24
+	 ipv6 address 2001:12::1/64
+	!
+	interface eth2
+	 ip address 10.2.2.254/24
+	 ipv6 address 2001:2:2::254/64
+	!
+	interface eth3
+	 ip address 10.0.8.1/24
+	 ipv6 address 2001:8::1/64
+	!
+	interface eth1
+	 ip address 10.0.6.2/24
+	 ipv6 address 2001:6::2/64
+	!
+	interface eth0
+	 ip address 10.0.0.1/24
+	 ipv6 address 2001:0::1/64
+	!
+    }
+    canvas c1
+    iconcoords {515.0 348.0}
+    labelcoords {557.0 333.0}
+    interface-peer {eth0 n2}
+    interface-peer {eth1 n6}
+    interface-peer {eth2 n8}
+    interface-peer {eth3 n7}
+    services {OSPFv2 OSPFv3 zebra IPForward}
+    interface-peer {eth4 n24}
+}
+
+node n2 {
+    type router
+    model router
+    network-config {
+	hostname Router2
+	!
+	interface eth5
+	 ip address 10.0.11.1/24
+	 ipv6 address 2001:11::1/64
+	!
+	interface eth4
+	 ip address 10.0.7.2/24
+	 ipv6 address 2001:7::2/64
+	!
+	interface eth2
+	 ip address 10.0.10.1/24
+	 ipv6 address 2001:10::1/64
+	!
+	interface eth3
+	 ip address 10.0.9.2/24
+	 ipv6 address 2001:9::2/64
+	!
+	interface eth1
+	 ip address 10.0.1.1/24
+	 ipv6 address 2001:1::1/64
+	!
+	interface eth0
+	 ip address 10.0.0.2/24
+	 ipv6 address 2001:0::2/64
+	!
+    }
+    canvas c1
+    iconcoords {750.0 507.0}
+    labelcoords {760.0 475.0}
+    interface-peer {eth0 n1}
+    interface-peer {eth1 n7}
+    interface-peer {eth3 n4}
+    interface-peer {eth2 n5}
+    interface-peer {eth4 n6}
+    interface-peer {eth5 n3}
+}
+
+node n3 {
+    type router
+    model router
+    network-config {
+	hostname Router3
+	!
+	interface eth2
+	 ip address 10.0.11.2/24
+	 ipv6 address 2001:11::2/64
+	!
+	interface eth1
+	 ip address 10.0.3.1/24
+	 ipv6 address 2001:3::1/64
+	!
+	interface eth0
+	 ip address 10.0.2.2/24
+	 ipv6 address 2001:2::2/64
+	!
+    }
+    canvas c1
+    iconcoords {1013.0 469.0}
+    labelcoords {1052.0 453.0}
+    interface-peer {eth0 n7}
+    interface-peer {eth1 n4}
+    interface-peer {eth2 n2}
+}
+
+node n4 {
+    type router
+    model router
+    network-config {
+	hostname Router4
+	!
+	interface eth4
+	 ip address 10.0.14.1/24
+	 ipv6 address 2001:14::1/64
+	!
+	interface eth3
+	 ip address 10.4.4.254/24
+	 ipv6 address 2001:4:4::254/64
+	!
+	interface eth2
+	 ip address 10.0.9.1/24
+	 ipv6 address 2001:9::1/64
+	!
+	interface eth1
+	 ip address 10.0.4.1/24
+	 ipv6 address 2001:4::1/64
+	!
+	interface eth0
+	 ip address 10.0.3.2/24
+	 ipv6 address 2001:3::2/64
+	!
+    }
+    canvas c1
+    iconcoords {927.0 665.0}
+    labelcoords {904.0 705.0}
+    interface-peer {eth0 n3}
+    interface-peer {eth1 n5}
+    interface-peer {eth2 n2}
+    interface-peer {eth3 n10}
+    interface-peer {eth4 n38}
+}
+
+node n5 {
+    type router
+    model router
+    network-config {
+	hostname Router5
+	!
+	interface eth3
+	 ip address 10.1.1.254/24
+	 ipv6 address 2001:1:1::254/64
+	!
+	interface eth0
+	 ip address 10.0.4.2/24
+	 ipv6 address 2001:4::2/64
+	!
+	interface eth2
+	 ip address 10.0.10.2/24
+	 ipv6 address 2001:10::2/64
+	!
+	interface eth1
+	 ip address 10.0.5.1/24
+	 ipv6 address 2001:5::1/64
+	!
+    }
+    canvas c1
+    iconcoords {544.0 657.0}
+    labelcoords {582.0 694.0}
+    interface-peer {eth0 n4}
+    interface-peer {eth1 n6}
+    interface-peer {eth3 n9}
+    interface-peer {eth2 n2}
+}
+
+node n6 {
+    type router
+    model router
+    network-config {
+	hostname Router6
+	!
+	interface eth3
+	 ip address 10.0.13.1/24
+	 ipv6 address 2001:13::1/64
+	!
+	interface eth2
+	 ip address 10.0.7.1/24
+	 ipv6 address 2001:7::1/64
+	!
+	interface eth1
+	 ip address 10.0.6.1/24
+	 ipv6 address 2001:6::1/64
+	!
+	interface eth0
+	 ip address 10.0.5.2/24
+	 ipv6 address 2001:5::2/64
+	!
+    }
+    canvas c1
+    iconcoords {455.0 490.0}
+    labelcoords {436.0 474.0}
+    interface-peer {eth0 n5}
+    interface-peer {eth1 n1}
+    interface-peer {eth2 n2}
+    interface-peer {eth3 n34}
+}
+
+node n7 {
+    type router
+    model router
+    network-config {
+	hostname Router7
+	!
+	interface eth2
+	 ip address 10.3.3.254/24
+	 ipv6 address 2001:3:3::254/64
+	!
+	interface eth3
+	 ip address 10.0.8.2/24
+	 ipv6 address 2001:8::2/64
+	!
+	interface eth1
+	 ip address 10.0.2.1/24
+	 ipv6 address 2001:2::1/64
+	!
+	interface eth0
+	 ip address 10.0.1.2/24
+	 ipv6 address 2001:1::2/64
+	!
+    }
+    canvas c1
+    iconcoords {941.0 349.0}
+    labelcoords {898.0 338.0}
+    interface-peer {eth0 n2}
+    interface-peer {eth1 n3}
+    interface-peer {eth2 n11}
+    interface-peer {eth3 n1}
+}
+
+node n8 {
+    type hub
+    network-config {
+	hostname Switch2
+	!
+    }
+    canvas c1
+    iconcoords {184.0 82.0}
+    labelcoords {228.0 77.0}
+    interface-peer {e0 n1}
+    interface-peer {e1 n12}
+    interface-peer {e2 n13}
+    interface-peer {e3 n20}
+}
+
+node n9 {
+    type hub
+    network-config {
+	hostname Switch1
+	!
+    }
+    canvas c1
+    iconcoords {173.0 953.0}
+    labelcoords {219.0 965.0}
+    interface-peer {e0 n5}
+    interface-peer {e1 n15}
+    interface-peer {e2 n14}
+    interface-peer {e3 n21}
+}
+
+node n10 {
+    type hub
+    network-config {
+	hostname Switch4
+	!
+    }
+    canvas c1
+    iconcoords {1295.0 930.0}
+    labelcoords {1243.0 953.0}
+    interface-peer {e0 n4}
+    interface-peer {e1 n17}
+    interface-peer {e2 n16}
+    interface-peer {e3 n22}
+}
+
+node n11 {
+    type hub
+    network-config {
+	hostname Switch3
+	!
+    }
+    canvas c1
+    iconcoords {1387.0 100.0}
+    labelcoords {1341.0 99.0}
+    interface-peer {e0 n7}
+    interface-peer {e1 n18}
+    interface-peer {e2 n19}
+    interface-peer {e3 n23}
+    interface-peer {e4 n33}
+}
+
+node n12 {
+    type router
+    model host
+    network-config {
+	hostname ss1-sheoldred-ium
+	!
+	interface eth0
+	 ip address 10.2.2.1/24
+	 ipv6 address 2001:2:2::1/64
+	!
+    }
+    canvas c1
+    iconcoords {66.0 31.0}
+    labelcoords {66.0 63.0}
+    interface-peer {eth0 n8}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.2.2.254
+	ip route add default via 2001:2:2::254
+	
+	}
+    }
+    services {DefaultRoute SSH StaticRoute UserDefined}
+}
+
+node n13 {
+    type router
+    model host
+    network-config {
+	hostname ss2-sheoldred-ium
+	!
+	interface eth0
+	 ip address 10.2.2.2/24
+	 ipv6 address 2001:2:2::2/64
+	!
+    }
+    canvas c1
+    iconcoords {55.0 103.0}
+    labelcoords {67.0 139.0}
+    interface-peer {eth0 n8}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.2.2.254
+	ip route add default via 2001:2:2::254
+	
+	}
+    }
+    services {DefaultRoute SSH StaticRoute UserDefined}
+}
+
+node n14 {
+    type router
+    model PC
+    network-config {
+	hostname Portatil1
+	!
+	interface eth0
+	 ip address 10.1.1.1/24
+	 ipv6 address 2001:1:1::1/64
+	!
+    }
+    canvas c1
+    iconcoords {38.0 1021.0}
+    labelcoords {38.0 1057.0}
+    interface-peer {eth0 n9}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.1.1.254
+	ip route add default via 2001:1:1::254
+	
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute
+	custom-command StaticRoute
+	config {
+	files=('staticroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute:staticroute.sh
+	custom-command staticroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by StaticRoute service (utility.py)
+	#
+	# NOTE: this service must be customized to be of any use
+	#       Below are samples that you can uncomment and edit.
+	#
+	#/sbin/ip route add 10.9.8.0/24 via 10.4.4.254
+	#/sbin/ip route add 3ffe:4::/64 via 2001:4:4::254
+	
+	}
+    }
+    services {DefaultRoute StaticRoute UserDefined}
+}
+
+node n15 {
+    type router
+    model PC
+    network-config {
+	hostname Portatil2
+	!
+	interface eth0
+	 ip address 10.1.1.2/24
+	 ipv6 address 2001:1:1::2/64
+	!
+    }
+    canvas c1
+    iconcoords {47.0 930.0}
+    labelcoords {47.0 965.0}
+    interface-peer {eth0 n9}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.1.1.254
+	ip route add default via 2001:1:1::254
+	
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute
+	custom-command StaticRoute
+	config {
+	files=('staticroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute:staticroute.sh
+	custom-command staticroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by StaticRoute service (utility.py)
+	#
+	# NOTE: this service must be customized to be of any use
+	#       Below are samples that you can uncomment and edit.
+	#
+	#/sbin/ip route add 10.9.8.0/24 via 10.4.4.254
+	#/sbin/ip route add 3ffe:4::/64 via 2001:4:4::254
+	
+	}
+    }
+    services {DefaultRoute StaticRoute UserDefined}
+}
+
+node n16 {
+    type router
+    model PC
+    network-config {
+	hostname Grilo
+	!
+	interface eth0
+	 ip address 10.4.4.1/24
+	 ipv6 address 2001:4:4::1/64
+	!
+    }
+    canvas c1
+    iconcoords {1430.0 912.0}
+    labelcoords {1460.0 944.0}
+    interface-peer {eth0 n10}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.4.4.254
+	ip route add default via 2001:4:4::254
+	
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute
+	custom-command StaticRoute
+	config {
+	files=('staticroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute:staticroute.sh
+	custom-command staticroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by StaticRoute service (utility.py)
+	#
+	# NOTE: this service must be customized to be of any use
+	#       Below are samples that you can uncomment and edit.
+	#
+	#/sbin/ip route add 10.9.8.0/24 via 10.3.3.254
+	#/sbin/ip route add 3ffe:4::/64 via 2001:3:3::254
+	
+	}
+    }
+    services {DefaultRoute StaticRoute UserDefined}
+}
+
+node n17 {
+    type router
+    model PC
+    network-config {
+	hostname Cigarra
+	!
+	interface eth0
+	 ip address 10.4.4.2/24
+	 ipv6 address 2001:4:4::2/64
+	!
+    }
+    canvas c1
+    iconcoords {1267.0 1006.0}
+    labelcoords {1289.0 1042.0}
+    interface-peer {eth0 n10}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.4.4.254
+	ip route add default via 2001:4:4::254
+	
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute
+	custom-command StaticRoute
+	config {
+	files=('staticroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute:staticroute.sh
+	custom-command staticroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by StaticRoute service (utility.py)
+	#
+	# NOTE: this service must be customized to be of any use
+	#       Below are samples that you can uncomment and edit.
+	#
+	#/sbin/ip route add 10.9.8.0/24 via 10.3.3.254
+	#/sbin/ip route add 3ffe:4::/64 via 2001:3:3::254
+	
+	}
+    }
+    services {DefaultRoute StaticRoute UserDefined}
+}
+
+node n18 {
+    type router
+    model host
+    network-config {
+	hostname sdt-ium
+	!
+	interface eth0
+	 ip address 10.3.3.1/24
+	 ipv6 address 2001:3:3::1/64
+	!
+    }
+    canvas c1
+    iconcoords {1463.0 161.0}
+    labelcoords {1463.0 201.0}
+    interface-peer {eth0 n11}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.3.3.254
+	ip route add default via 2001:3:3::254
+	
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute
+	custom-command StaticRoute
+	config {
+	files=('staticroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute:staticroute.sh
+	custom-command staticroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by StaticRoute service (utility.py)
+	#
+	# NOTE: this service must be customized to be of any use
+	#       Below are samples that you can uncomment and edit.
+	#
+	#/sbin/ip route add 10.9.8.0/24 via 10.2.2.254
+	#/sbin/ip route add 3ffe:4::/64 via 2001:2:2::254
+	
+	}
+    }
+    services {DefaultRoute SSH StaticRoute UserDefined}
+}
+
+node n19 {
+    type router
+    model host
+    network-config {
+	hostname sdt-slp
+	!
+	interface eth0
+	 ip address 10.3.3.2/24
+	 ipv6 address 2001:3:3::2/64
+	!
+    }
+    canvas c1
+    iconcoords {1448.0 44.0}
+    labelcoords {1459.0 82.0}
+    interface-peer {eth0 n11}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.3.3.254
+	ip route add default via 2001:3:3::254
+	
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute
+	custom-command StaticRoute
+	config {
+	files=('staticroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute:staticroute.sh
+	custom-command staticroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by StaticRoute service (utility.py)
+	#
+	# NOTE: this service must be customized to be of any use
+	#       Below are samples that you can uncomment and edit.
+	#
+	#/sbin/ip route add 10.9.8.0/24 via 10.2.2.1
+	#/sbin/ip route add 3ffe:4::/64 via 2001:2:2::1
+	
+	}
+    }
+    services {DefaultRoute SSH StaticRoute UserDefined}
+}
+
+node n20 {
+    type router
+    model host
+    network-config {
+	hostname sp-sheoldred-ium
+	!
+	interface eth0
+	 ip address 10.2.2.3/24
+	 ipv6 address 2001:2:2::3/64
+	!
+    }
+    canvas c1
+    iconcoords {149.0 183.0}
+    labelcoords {189.0 209.0}
+    interface-peer {eth0 n8}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.2.2.254
+	ip route add default via 2001:2:2::254
+	
+	}
+    }
+    services {DefaultRoute SSH StaticRoute UserDefined}
+}
+
+node n21 {
+    type router
+    model PC
+    network-config {
+	hostname Portatil3
+	!
+	interface eth0
+	 ip address 10.1.1.3/24
+	 ipv6 address 2001:1:1::3/64
+	!
+    }
+    canvas c1
+    iconcoords {188.0 1029.0}
+    labelcoords {188.0 1067.0}
+    interface-peer {eth0 n9}
+    services {DefaultRoute StaticRoute UserDefined}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.1.1.254
+	ip route add default via 2001:1:1::254
+	
+	}
+    }
+}
+
+node n23 {
+    type router
+    model host
+    network-config {
+	hostname st1
+	!
+	interface eth0
+	 ip address 10.3.3.3/24
+	 ipv6 address 2001:3:3::3/64
+	!
+    }
+    canvas c1
+    iconcoords {1290.0 29.0}
+    labelcoords {1327.0 31.0}
+    interface-peer {eth0 n11}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.3.3.254
+	ip route add default via 2001:3:3::254
+	
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute
+	custom-command StaticRoute
+	config {
+	files=('staticroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:StaticRoute:staticroute.sh
+	custom-command staticroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by StaticRoute service (utility.py)
+	#
+	# NOTE: this service must be customized to be of any use
+	#       Below are samples that you can uncomment and edit.
+	#
+	#/sbin/ip route add 10.9.8.0/24 via 10.2.2.254
+	#/sbin/ip route add 3ffe:4::/64 via 2001:2:2::254
+	
+	}
+    }
+    services {DefaultRoute SSH StaticRoute UserDefined}
+}
+
+node n22 {
+    type router
+    model PC
+    network-config {
+	hostname Vespa
+	!
+	interface eth0
+	 ip address 10.4.4.3/24
+	 ipv6 address 2001:4:4::3/64
+	!
+    }
+    canvas c1
+    iconcoords {1429.0 1007.0}
+    labelcoords {1435.0 1046.0}
+    interface-peer {eth0 n10}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	files=('preenche_resolvconf.sh', )
+	cmdup=('mkdir /run/resolvconf', 'touch /run/resolvconf/resolv.conf', 'sh preenche_resolvconf.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:UserDefined:preenche_resolvconf.sh
+	custom-command preenche_resolvconf.sh
+	config {
+	echo "# -- gerado pela script de arranque..." >> /etc/resolv.conf
+	echo "domain cc.pt" >> /etc/resolv.conf
+	echo "nameserver 10.2.2.1" >> /etc/resolv.conf
+	echo "" >> /etc/resolv.conf 
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute
+	custom-command DefaultRoute
+	config {
+	files=('defaultroute.sh', )
+	}
+    }
+    custom-config {
+	custom-config-id service:DefaultRoute:defaultroute.sh
+	custom-command defaultroute.sh
+	config {
+	#!/bin/sh
+	# auto-generated by DefaultRoute service (utility.py)
+	ip route add default via 10.4.4.254
+	ip route add default via 2001:4:4::254
+	
+	}
+    }
+    services {DefaultRoute StaticRoute UserDefined}
+}
+
+node n24 {
+    type lanswitch
+    network-config {
+	hostname Switch4
+	!
+    }
+    canvas c1
+    iconcoords {757.0 97.0}
+    labelcoords {757.0 121.0}
+    interface-peer {e0 n1}
+    interface-peer {e1 n27}
+    interface-peer {e2 n28}
+    interface-peer {e3 n25}
+    interface-peer {e4 n26}
+    interface-peer {e5 n29}
+    interface-peer {e6 n30}
+    interface-peer {e7 n32}
+    interface-peer {e8 n31}
+}
+
+node n25 {
+    type router
+    model host
+    network-config {
+	hostname slp
+	!
+	interface eth0
+	 ip address 10.0.12.12/24
+	 ipv6 address 2001:12::12/64
+	!
+    }
+    canvas c1
+    iconcoords {470.0 66.0}
+    labelcoords {470.0 98.0}
+    interface-peer {eth0 n24}
+}
+
+node n26 {
+    type router
+    model host
+    network-config {
+	hostname ium
+	!
+	interface eth0
+	 ip address 10.0.12.13/24
+	 ipv6 address 2001:12::13/64
+	!
+    }
+    canvas c1
+    iconcoords {463.0 119.0}
+    labelcoords {463.0 151.0}
+    interface-peer {eth0 n24}
+}
+
+node n27 {
+    type router
+    model host
+    network-config {
+	hostname sheoldred-ium
+	!
+	interface eth0
+	 ip address 10.0.12.10/24
+	 ipv6 address 2001:12::10/64
+	!
+    }
+    canvas c1
+    iconcoords {610.0 26.0}
+    labelcoords {610.0 58.0}
+    interface-peer {eth0 n24}
+}
+
+node n28 {
+    type router
+    model host
+    network-config {
+	hostname mindflayer-slp
+	!
+	interface eth0
+	 ip address 10.0.12.11/24
+	 ipv6 address 2001:12::11/64
+	!
+    }
+    canvas c1
+    iconcoords {575.0 160.0}
+    labelcoords {575.0 192.0}
+    interface-peer {eth0 n24}
+}
+
+node n29 {
+    type router
+    model host
+    network-config {
+	hostname deathtouch-sheoldred-ium
+	!
+	interface eth0
+	 ip address 10.0.12.14/24
+	 ipv6 address 2001:12::14/64
+	!
+    }
+    canvas c1
+    iconcoords {927.0 23.0}
+    labelcoords {927.0 55.0}
+    interface-peer {eth0 n24}
+}
+
+node n30 {
+    type router
+    model host
+    network-config {
+	hostname black-sheoldred-ium
+	!
+	interface eth0
+	 ip address 10.0.12.15/24
+	 ipv6 address 2001:12::15/64
+	!
+    }
+    canvas c1
+    iconcoords {864.0 167.0}
+    labelcoords {864.0 199.0}
+    interface-peer {eth0 n24}
+}
+
+node n31 {
+    type router
+    model host
+    network-config {
+	hostname blue-mindflayer-slp
+	!
+	interface eth0
+	 ip address 10.0.12.17/24
+	 ipv6 address 2001:12::17/64
+	!
+    }
+    canvas c1
+    iconcoords {1031.0 158.0}
+    labelcoords {1031.0 190.0}
+    interface-peer {eth0 n24}
+}
+
+node n32 {
+    type router
+    model host
+    network-config {
+	hostname foretell-mindflayer-slp
+	!
+	interface eth0
+	 ip address 10.0.12.16/24
+	 ipv6 address 2001:12::16/64
+	!
+    }
+    canvas c1
+    iconcoords {1027.0 89.0}
+    labelcoords {1027.0 121.0}
+    interface-peer {eth0 n24}
+}
+
+node n33 {
+    type router
+    model host
+    network-config {
+	hostname st2
+	!
+	interface eth0
+	 ip address 10.3.3.10/24
+	 ipv6 address 2001:3:3::10/64
+	!
+    }
+    canvas c1
+    iconcoords {1239.0 107.0}
+    labelcoords {1239.0 139.0}
+    interface-peer {eth0 n11}
+}
+
+node n34 {
+    type lanswitch
+    network-config {
+	hostname Switch5
+	!
+    }
+    canvas c1
+    iconcoords {176.0 549.0}
+    labelcoords {176.0 573.0}
+    interface-peer {e0 n6}
+    interface-peer {e1 n35}
+    interface-peer {e2 n37}
+    interface-peer {e3 n36}
+}
+
+node n35 {
+    type router
+    model host
+    network-config {
+	hostname sp-mindflayer-slp
+	!
+	interface eth0
+	 ip address 10.0.13.10/24
+	 ipv6 address 2001:13::10/64
+	!
+    }
+    canvas c1
+    iconcoords {189.0 387.0}
+    labelcoords {189.0 419.0}
+    interface-peer {eth0 n34}
+}
+
+node n36 {
+    type router
+    model host
+    network-config {
+	hostname ss2-mindflayer-slp
+	!
+	interface eth0
+	 ip address 10.0.13.12/24
+	 ipv6 address 2001:13::12/64
+	!
+    }
+    canvas c1
+    iconcoords {197.0 719.0}
+    labelcoords {197.0 751.0}
+    interface-peer {eth0 n34}
+}
+
+node n37 {
+    type router
+    model host
+    network-config {
+	hostname ss1-mindflayer-slp
+	!
+	interface eth0
+	 ip address 10.0.13.11/24
+	 ipv6 address 2001:13::11/64
+	!
+    }
+    canvas c1
+    iconcoords {75.0 629.0}
+    labelcoords {75.0 661.0}
+    interface-peer {eth0 n34}
+}
+
+node n38 {
+    type lanswitch
+    network-config {
+	hostname Switch6
+	!
+    }
+    canvas c1
+    iconcoords {1267.0 615.0}
+    labelcoords {1267.0 639.0}
+    interface-peer {e0 n4}
+    interface-peer {e1 n39}
+    interface-peer {e2 n40}
+}
+
+node n39 {
+    type router
+    model host
+    network-config {
+	hostname sr1
+	!
+	interface eth0
+	 ip address 10.0.14.10/24
+	 ipv6 address 2001:14::10/64
+	!
+    }
+    canvas c1
+    iconcoords {1400.0 556.0}
+    labelcoords {1400.0 588.0}
+    interface-peer {eth0 n38}
+}
+
+node n40 {
+    type router
+    model host
+    network-config {
+	hostname sr2
+	!
+	interface eth0
+	 ip address 10.0.14.11/24
+	 ipv6 address 2001:14::11/64
+	!
+    }
+    canvas c1
+    iconcoords {1405.0 679.0}
+    labelcoords {1405.0 711.0}
+    interface-peer {eth0 n38}
+}
+
+link l1 {
+    nodes {n1 n2}
+    bandwidth 0
+}
+
+link l2 {
+    nodes {n2 n7}
+    bandwidth 0
+}
+
+link l3 {
+    nodes {n7 n3}
+    bandwidth 0
+}
+
+link l4 {
+    nodes {n3 n4}
+    bandwidth 0
+}
+
+link l5 {
+    nodes {n4 n5}
+    bandwidth 0
+}
+
+link l6 {
+    nodes {n5 n6}
+    bandwidth 0
+}
+
+link l7 {
+    nodes {n6 n1}
+    bandwidth 0
+}
+
+link l10 {
+    nodes {n4 n2}
+    bandwidth 0
+}
+
+link l12 {
+    width 6
+    color Green
+    delay 100
+    nodes {n8 n1}
+    bandwidth 1000000000
+}
+
+link l13 {
+    width 6
+    color Green
+    delay 100
+    nodes {n9 n5}
+    bandwidth 1000000000
+}
+
+link l14 {
+    ber 5
+    duplicate 10
+    width 6
+    color Magenta
+    delay 5000
+    nodes {n10 n4}
+    bandwidth 100000000
+}
+
+link l15 {
+    width 6
+    color Green
+    delay 100
+    nodes {n11 n7}
+    bandwidth 1000000000
+}
+
+link l16 {
+    nodes {n12 n8}
+    bandwidth 0
+}
+
+link l17 {
+    nodes {n13 n8}
+    bandwidth 0
+}
+
+link l18 {
+    nodes {n18 n11}
+    bandwidth 0
+}
+
+link l19 {
+    nodes {n19 n11}
+    bandwidth 0
+}
+
+link l20 {
+    nodes {n17 n10}
+    bandwidth 0
+}
+
+link l21 {
+    nodes {n16 n10}
+    bandwidth 0
+}
+
+link l22 {
+    nodes {n15 n9}
+    bandwidth 0
+}
+
+link l23 {
+    nodes {n14 n9}
+    bandwidth 0
+}
+
+link l9 {
+    nodes {n1 n7}
+    bandwidth 0
+}
+
+link l11 {
+    nodes {n2 n5}
+    bandwidth 0
+}
+
+link l25 {
+    nodes {n8 n20}
+    bandwidth 0
+}
+
+link l26 {
+    nodes {n9 n21}
+    bandwidth 0
+}
+
+link l28 {
+    nodes {n11 n23}
+    bandwidth 0
+}
+
+link l27 {
+    nodes {n10 n22}
+    bandwidth 0
+}
+
+link l8 {
+    nodes {n6 n2}
+    bandwidth 0
+}
+
+link l24 {
+    nodes {n2 n3}
+    bandwidth 0
+}
+
+link l29 {
+    width 6
+    color Green
+    delay 100
+    nodes {n1 n24}
+    bandwidth 1000000000
+}
+
+link l30 {
+    nodes {n27 n24}
+    bandwidth 0
+}
+
+link l31 {
+    nodes {n28 n24}
+    bandwidth 0
+}
+
+link l32 {
+    nodes {n24 n25}
+    bandwidth 0
+}
+
+link l33 {
+    nodes {n24 n26}
+    bandwidth 0
+}
+
+link l34 {
+    nodes {n24 n29}
+    bandwidth 0
+}
+
+link l35 {
+    nodes {n24 n30}
+    bandwidth 0
+}
+
+link l36 {
+    nodes {n24 n32}
+    bandwidth 0
+}
+
+link l37 {
+    nodes {n24 n31}
+    bandwidth 0
+}
+
+link l38 {
+    nodes {n11 n33}
+    bandwidth 0
+}
+
+link l39 {
+    width 6
+    color Green
+    delay 100
+    nodes {n34 n6}
+    bandwidth 1000000000
+}
+
+link l40 {
+    nodes {n35 n34}
+    bandwidth 0
+}
+
+link l41 {
+    nodes {n34 n37}
+    bandwidth 0
+}
+
+link l42 {
+    nodes {n34 n36}
+    bandwidth 0
+}
+
+link l43 {
+    width 6
+    color Green
+    delay 100
+    nodes {n4 n38}
+    bandwidth 1000000000
+}
+
+link l44 {
+    nodes {n38 n39}
+    bandwidth 0
+}
+
+link l45 {
+    nodes {n38 n40}
+    bandwidth 0
+}
+
+annotation a2 {
+    iconcoords {1166.0 461.0}
+    type text
+    label {CC-LEI 2022 Adaptada}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {22}
+    effects {bold}
+    canvas c1
+}
+
+annotation a8 {
+    type text
+    iconcoords {54.0 184.0}
+    label {}
+    canvas c1
+}
+
+annotation a9 {
+    type text
+    iconcoords {682.0 129.0}
+    label {}
+    canvas c1
+}
+
+annotation a10 {
+    iconcoords {52.0 93.0}
+    type text
+    label {}
+    labelcolor #00a900
+    fontfamily {Arial}
+    fontsize {12}
+    canvas c1
+}
+
+annotation a11 {
+    type text
+    iconcoords {62.0 96.0}
+    label {}
+    canvas c1
+}
+
+annotation a13 {
+    type text
+    iconcoords {754.0 165.0}
+    label {}
+    canvas c1
+}
+
+annotation a17 {
+    type text
+    iconcoords {402.0 504.0}
+    label {}
+    canvas c1
+}
+
+annotation a18 {
+    type text
+    iconcoords {414.0 273.0}
+    label {}
+    canvas c1
+}
+
+annotation a19 {
+    iconcoords {528.0 745.0}
+    type text
+    label {Link 1.0 Gbps, 100 microsec (green)}
+    labelcolor #009900
+    fontfamily {Arial}
+    fontsize {10}
+    effects {bold}
+    canvas c1
+}
+
+annotation a20 {
+    iconcoords {528.0 769.0}
+    type text
+    label {Link 100 Mbps, 5 milisec, loss=5%, dup=10% (cyan)}
+    labelcolor #8900b0
+    fontfamily {Arial}
+    fontsize {10}
+    effects {bold}
+    canvas c1
+}
+
+annotation a21 {
+    type text
+    iconcoords {410.0 570.0}
+    label {}
+    canvas c1
+}
+
+annotation a22 {
+    type text
+    iconcoords {380.0 608.0}
+    label {}
+    canvas c1
+}
+
+annotation a23 {
+    iconcoords {527.0 792.0}
+    type text
+    label {Link unlimited (red)}
+    labelcolor #d30000
+    fontfamily {Arial}
+    fontsize {10}
+    effects {bold}
+    canvas c1
+}
+
+annotation a24 {
+    iconcoords {518 725 900 821}
+    type rectangle
+    label {}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {12}
+    color #ffffff
+    width 1
+    border #000000
+    rad 25
+    canvas c1
+}
+
+canvas c1 {
+    name {Canvas1}
+    refpt {0 0 47.5791667 -122.132322 2.0}
+    scale {150.0}
+    size {1500 1075}
+}
+
+option global {
+    interface_names no
+    ip_addresses yes
+    ipv6_addresses no
+    node_labels yes
+    link_labels yes
+    show_api no
+    background_images no
+    annotations yes
+    grid yes
+    traffic_start 0
+}
+
+option session {
+}
+

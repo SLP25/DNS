@@ -1,8 +1,14 @@
 @ DEFAULT slp.
 TTL DEFAULT 600
 
-mindflayer. NS 10.2.2.3:4400 TTL 1
-mindflayer. NS 10.2.2.2:4400 TTL 2
-mindflayer. NS 10.2.2.1:4400 TTL 3
+mindflayer NS sp.mindflayer.slp. TTL 1
+mindflayer NS ss2.mindflayer.slp. TTL 2
+mindflayer NS ss1.mindflayer.slp. TTL 3
 
-djinn CNAME sheoldred.batata TTL
+djinn CNAME sheoldred.batata. TTL
+
+sp.mindflayer.slp. A 10.0.13.10:4200 TTL
+ss1.mindflayer.slp. A 10.0.13.11:4200 TTL
+ss2.mindflayer.slp. A 10.0.13.12:4200 TTL
+
+@ A 10.0.12.12 TTL

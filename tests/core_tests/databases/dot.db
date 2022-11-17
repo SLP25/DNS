@@ -1,0 +1,8 @@
+@ DEFAULT .
+TTL DEFAULT 600
+
+slp NS sdt.slp TTL
+ium NS sdt.ium TTL
+
+sdt.slp A 10.3.3.2
+sdt.ium A 10.3.3.1
