@@ -1,11 +1,12 @@
 """
 File implementing a wrapper class for a UDP socket
 
-Last Modification: Documentation
-Date of Modification: 02/11/2022 09:40
+Last Modification: Added automatic port assignment
+Date of Modification: 16/11/2022 13:56
 """
 
 import socket
+from typing import Optional
 
 class UDP:
     """
@@ -14,15 +15,18 @@ class UDP:
     Arguments:
 
     localIP : String -> The IP to run the socket on
-    localPort : int  -> The port to listen on
+    localPort : int  -> The port to listen on. If not indicated, the OS picks a random available port
     bufferSize : int -> The size of the buffer for messages
     binding : bool   -> Whether or not to bind to the port
     """
-    def __init__(self, localIP = "127.0.0.1", localPort = 4200, bufferSize = 1024, binding = False):
+    def __init__(self, localIP:str = "127.0.0.1", localPort:int = 0, timeout:Optional[float] = None, bufferSize:int = 1024, binding:bool = False):
         self.localIP = localIP
         self.localPort = localPort
         self.bufferSize = bufferSize
         self.serverSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        
+        if timeout != None:
+            self.serverSocket.settimeout(timeout)
 
         if binding:
             self.serverSocket.bind((self.localIP, self.localPort))
@@ -31,6 +35,7 @@ class UDP:
     def receive(self):
         """
         Receive data
+        If timeout is set, raises socket.timeout
 
         Returns:
 
@@ -39,18 +44,11 @@ class UDP:
         """
         bytesAddressPair = self.serverSocket.recvfrom(self.bufferSize)
         message = bytesAddressPair[0]
+        ip, port = bytesAddressPair[1]
 
-        address = bytesAddressPair[1]
+        return message, ip, port
 
-        clientMsg = "Message from Client:{}".format(message)
-        clientIP  = "Client IP Address:{}".format(address)
-        
-        print(clientMsg)
-        print(clientIP)
-
-        return message, address
-
-    def send(self, message, address):
+    def send(self, message:str, ip:str, port:int):
         """
         Send data
 
@@ -59,4 +57,4 @@ class UDP:
         message : bytes                    -> The message to send through the socket
         address : (IP : String, port: int) -> The address to send the message to
         """
-        self.serverSocket.sendto(message, address)
+        self.serverSocket.sendto(message, (ip, port))

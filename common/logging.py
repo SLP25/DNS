@@ -1,11 +1,14 @@
 import logging
-import enum
-from exceptions import MainLoggerNotIniciatedException,LoggerNotIniciatedException
+from enum import Enum
+#from server.exceptions import MainLoggerNotIniciatedException,LoggerNotIniciatedException
 import datetime
 import time
 import sys
 
-class LoggingEntryType(enum):
+
+logger = None
+
+class LoggingEntryType(Enum):
     QR=0#data = PDU DATA
     QE=1#data = PDU DATA
     RP=2#data = PDU DATA
@@ -26,6 +29,10 @@ class Logging:
     
     def __init__(self,debug=False):
         self.debug=debug
+        
+    def is_valid(self):
+        #TODO: return false if no log file is set for mainLogger        
+        return True
     
     def __setup_logger__(self,name, log_file):
         """creates a logger with a given name
@@ -77,20 +84,12 @@ class Logging:
         
         
         
-    def log(self,etype:LoggingEntryType,ip:str,data:list,domain=None):
+    def log(self,etype:LoggingEntryType,address:str,data:list,domain=None):
         if not domain:
             if not self.mainLogger:
-                raise MainLoggerNotIniciatedException()
+                raise ValueError()  #MainLoggerNotIniciatedException()  TODO
             logger=self.mainLogger
         else:
             logger=self.domains[domain]
-        logger.info(self.__stardizeMessage__(etype,ip,data))
-        
-            
-    
-                
-        
-        
-        
-    
-
+        logger.info(self.__stardizeMessage__(etype,address,data))
+        print(self.__stardizeMessage__(etype,address,data)) #TODO: tirar isto e pôr o logger a funcionar

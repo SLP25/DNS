@@ -49,7 +49,7 @@ class QueryResponse:
         vals = list(filter(lambda e: e.type == query.type and e.parameter == query.name, entries))
         vals = [min(vals, key=lambda e: e.priority)] if vals else []
 
-        all_auths = {}  #TODO: if query.type == NS, include auths anyway???
+        all_auths = {}
         for e in entries:
             if e.type == EntryType.NS and utils.is_subdomain(query.name, e.parameter):
                 if e.parameter not in all_auths or e.priority < all_auths[e.parameter].priority:

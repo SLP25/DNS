@@ -16,6 +16,7 @@ from server.exceptions import InvalidConfigFileException
 import re
 import common.utils as utils
 from server.database import Database
+import common.logging as logging
 
 class Domain:
     """
@@ -28,12 +29,11 @@ class Domain:
         self.name = name
         self.logFiles = []
     
-                                            #TODO: tirar (passar para o modulo de logging)
-    def add_log_file(self, log_file:str):   #TODO: check value/open file immediately
+    def add_log_file(self, log_file:str):
         """
         Adds a specific log file path to the domian
         """
-        self.logFiles.append(log_file)
+        logging.logger.setupLogger(log_file, self.name)
         
 class PrimaryDomain(Domain):
     """

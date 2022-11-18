@@ -6,12 +6,15 @@ the server state accordingly. It also has the main function
 responsible for receiving and sending DNS messages. Processing is
 done in another file.
 
-Last modification: Added documentation
-Date of Modification: 14/11/2022 15:03
+Last modification: Added timeout
+Date of Modification: 16/11/2022 13:53
 '''
 #TODO: Terminate on SIGINT/SIGTERM
 
 import random
+import socket
+from common.logging import Logging, LoggingEntryType
+import common.logging as logging
 from common.query import QueryResponse
 from server.cache import Cache
 from common.dnsEntry import EntryType
@@ -35,6 +38,7 @@ class Server:
         self.supports_recursive = resolver
         self.config = ServerData(config_file)
         self.cache = Cache()
+        
         #TODO: init zone transfers
         
     def answers_query(self, query:QueryInfo):
@@ -53,32 +57,45 @@ class Server:
             
         return False
     
-    #TODO: timeout
-    def query(self, address, query:QueryInfo):
+    def query(self, address, query:QueryInfo, recursive:bool):
         """
         Queries the dns server in address with the given query
         Returns the QueryResponse, or None if the request timed out or response failed to parse
         """
-        udp = UDP(localPort=port)   #TODO: use another port
-        msg = DNSMessage.from_query(query, True)
         
-        udp.send(str(msg).encode(), address) #TODO: check debug mode (if off, send bytes instead of string)
-        bytes, _ = udp.receive()
+        ip, port = utils.decompose_address(address)
+        udp = UDP(timeout=timeout)
+        msg = DNSMessage.from_query(query, recursive)
+        
+        logger.log(LoggingEntryType.QE, address, [msg], query.name)
+        
+        try:
+            udp.send(str(msg).encode(), ip, port) #TODO: check debug mode (if off, send bytes instead of string)
+            bytes, _, _ = udp.receive()
+        except socket.timeout:
+            logger.log(LoggingEntryType.TO, address, ['DNS query timed out'], query.name)
+            return None
         
         try:
             ans = DNSMessage.from_string(bytes.decode()) #TODO: check debug mode
-            return ans.response
+            
+            if ans.is_query():
+                logger.log(LoggingEntryType.ER, address, ["The received DNSMessage isn't a response: ", ans], query.name)
+                return None
+            else:
+                logger.log(LoggingEntryType.RR, address, [ans], query.name)
+                return ans.response
         except:
+            logger.log(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"], query.name)
             return None
     
-    #returns the result of the first answered query, or None if none was answered
-    def query_all(self, addresses, query:QueryInfo):
+    def query_any(self, addresses, query:QueryInfo, recursive:bool):
         """
         Queries the dns servers listed in addresses with the given query
         Returns the QueryResponse of the first answer, or None if none answered
         """
         for a in addresses:
-            ans = self.query(a, query)
+            ans = self.query(a, query, recursive)
             if ans:
                 return ans
             
@@ -90,19 +107,18 @@ class Server:
         ans = self.answer_query(QueryInfo(hostname, EntryType.A), True)
         return ans.values if ans else []
     
-    #TODO: distinguish no response from domain doesn't exist
     def answer_query(self, query:QueryInfo, recursive:bool):
         """
         Given a query and whether to run recursively, returns an
         answering QueryResponse or None if it isn't possible to answer
         """
-        ans = self.cache.answer_query(query)           #try cache
+
+        ans = self.cache.answer_query(query)    #try cache
         if ans.positive():
             return ans
-        
+
         ans = self.config.answer_query(query)   #try database
-        self.cache.add_response(ans)
-        if ans.positive():
+        if ans.positive() or not recursive:
             return ans
         
         #start search from the root/default servers
@@ -110,9 +126,9 @@ class Server:
         prev_ans = None
         
         while True:
-            ans = self.query_all(next_dns, query)
+            ans = self.query_any(next_dns, query, recursive)
             if not ans:     #can't contact anyone :(
-                return prev_ans if prev_ans else QueryResponse()
+                return prev_ans if prev_ans else QueryResponse() #TODO: nao responder? resposta vazia? ou resposta anterior?
             
             self.cache.add_response(ans)
             if ans.positive() or not recursive:     #success!
@@ -121,42 +137,54 @@ class Server:
             prev_ans = ans  #store previous answer
         
             #Query wasn't successful yet, so the next step is to contact the next dns in the hierarchy
-            #First, order received authorities from most to least specific (assume all of them match)
-            ans.authorities.sort(reverse=True, key=lambda e: len(utils.split_domain(e.parameter)))
+            #First, order received authorities from least to most specific (assume all of them match)
+            ans.authorities.sort(key=lambda e: len(utils.split_domain(e.parameter)))
             auths = [e.value for e in ans.authorities]                              #next, get the hostname of their dns
             next_dns = utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
-
+        
     
-    def process_message(self, message, address):
+    def process_message(self, message, ip, port):
         '''
         Processes the received message from the given address
         Returns a response message, or None if the query shouldn't be answered (see answers_query())
         '''
-        msg = DNSMessage().from_string(message.decode())
+        address = f'{ip}:{port}'
+        
+        try:
+            msg = DNSMessage.from_string(message.decode())
+        except:
+            logger.log(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"])
+            return None 
+        
+        if not msg.is_query():
+            logger.log(LoggingEntryType.ER, address, ["The received DNSMessage isn't a query:", msg])
+            return None
         
         if not self.answers_query(msg.query):
             return None
         
-        ans = self.answer_query(msg.query, self.supports_recursive)
+        logger.log(LoggingEntryType.QE, address, [msg], msg.query.name)
+        ans = self.answer_query(msg.query, msg.recursive and self.supports_recursive)
         if ans:
-            return str(msg.generate_response(ans, self.supports_recursive)).encode()
+            resp = msg.generate_response(ans, self.supports_recursive)
+            logger.log(LoggingEntryType.RP, address, [resp], msg.query.name)
+            return str(resp).encode()
 
     def run(self):
         '''
         Main server loop
         Receives DNS queries, and calls the processing function
         '''
+        logger.log(LoggingEntryType.ST, '127.0.0.1', ['port:', port, 'timeout:', timeout, 'debug:', debug])
         self.server = UDP(localPort=port,binding = True)
 
         while(True):
-            print("receiveing messages!")
-            msg, address = self.server.receive()
-            print("message received!")
-            print(msg)
-            ans = self.process_message(msg, address)
-            print(ans)
+            msg, ip, p = self.server.receive()
+            ans = self.process_message(msg, ip, p)
             if ans:
-                self.server.send(ans, address)
+                self.server.send(ans, ip, p)
+                
+        #logger.log(LoggingEntryType.SP, '127.0.0.1', ['TODO: cenas aqui'])
     
 def extract_flag(flag):
     '''
@@ -196,7 +224,11 @@ def main():
         exit(1)
 
     global timeout
-    timeout = int(extract_flag("-t"))
+    timeout = int(extract_flag("-t")) / 1000    #convert to seconds
+    
+    global logger
+    logging.logger = Logging(debug)
+    logger = logging.logger
 
     #Config
     config_file = extract_flag("-c")

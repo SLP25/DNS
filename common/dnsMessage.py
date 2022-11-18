@@ -51,7 +51,7 @@ class DNSMessage:
         ans.messageID = self.messageID
         ans.query = self.query
         ans.response = response
-        ans.responseCode = 0 if response.positive() else 1 #2??? TODO: perguntar
+        ans.responseCode = 0 if response.positive() else 1
         ans.supports_recursive = supports_recursive
         return ans
     

@@ -128,7 +128,7 @@ class DNSEntry:
         if priority == None and type.supports_priority():
             priority = 0
             
-        if priority < 0 or priority > 255:
+        if priority != None and (priority < 0 or priority > 255):
             raise InvalidDNSEntryException(f"Priority {priority} must be between 0 and 255")
         
         self.parameter = type.validate_parameter(parameter)
@@ -194,9 +194,10 @@ class DNSEntry:
         """
         Converts the current instance of DNSEntry to an array of bytes
         """
+        #TODO: pass type as 4 bits instead of 1 byte? or padding
         return utils.string_to_bytes(self.parameter) + utils.int_to_bytes(self.type.value, 1) + utils.string_to_bytes(self.value) + utils.int_to_bytes(self.ttl.value, 4) + utils.int_to_bytes(self.priority.value, 1)
 
-    def __str__(self):
+    def __str__(self):  #TODO: tirar priority se o type nao suporta?
         """
         Converts the current instance of DNSEntry to its string representation
         """

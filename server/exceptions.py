@@ -25,6 +25,12 @@ class InvalidDatabaseException(Exception):
     '''
     pass
 
+class InvalidTopServersException(Exception):
+    '''
+    The top servers file is invalid, i.e., it does not follow
+    the specification
+    '''
+    pass
 class InvalidZoneTransferPacketException(Exception):
     '''
     The zone transfer packet given is not valid. Thrown when

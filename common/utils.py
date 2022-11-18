@@ -84,6 +84,18 @@ def flat_map(f, xs):
     return (y for ys in xs for y in f(ys))
 
 
+def decompose_address(address:str):
+    """
+    Given a valid ip address (matches IP_MAYBE_PORT), returns a pair containing the ip and the port
+    The port is returned as an integer. If the given address doesn't specify a port,
+    the returned port is the default (see DEFAULT_PORT)
+    """
+    aux = address.split(':', 1)
+    ip = aux[0]
+    port = DEFAULT_PORT if len(aux) == 1 else int(aux[1])
+    return (ip, port)
+
+
 def normalize_domain(domain:str):
     """
     Given a valid domain name (that matches DOMAIN or FULL_DOMAIN regexes), converts it

@@ -11,10 +11,12 @@ import math
 from typing import List, Optional
 from common.query import QueryInfo
 from common.query import QueryResponse
-from .exceptions import InvalidConfigFileException, NoConfigFileException
+from .exceptions import InvalidConfigFileException, InvalidTopServersException, NoConfigFileException
 from common.dnsEntry import DNSEntry, EntryType
 import common.utils as utils
+import common.logging as logging
 from .domain import Domain, PrimaryDomain, SecondaryDomain
+from collections import OrderedDict
 import re
 
 
@@ -46,10 +48,9 @@ CONFIG_TYPE = f'({"|".join(ConfigType.get_all())})'
 class ServerData:
     """
     Is responsible for storing all configuration data of the server. This includes:
-        domains         -> Dict[str,Domain] (stored by (full) domain name)
+        domains         -> OrderedDict[str,Domain] (stored by (full) domain name, ordered from higher to lower in the hierarchy)
         defaultServers  -> Dict[str,str] (full domain name to ip addresses)
         topServers      -> List[str] (ip adresses)
-        logFiles        -> List[str] (file names)
     """
     
     def __init__(self, filePath:str):
@@ -57,20 +58,24 @@ class ServerData:
         Constructs an instance of ServerData from the given path to a server configuration file
         """
         
-        self.domains = {}   #name:domain  #TODO: separar em primary e seconday??
-        self.defaultServers = {}    #domain:value
-        self.topServers = []    #ips
-        self.logFiles = []      #file names
+        self.domains = OrderedDict()    #name:domain  #TODO: separar em primary e seconday?
+        self.defaultServers = {}        #domain:value
+        self.topServers = []            #ips
 
         try:
             with open(filePath, "r") as file:
                 for line in file.readlines():
                     self.__parseLine__(line.rstrip('\n'))
                     
-                if self.logFiles == []:
+                if not logging.logger.is_valid():
                     raise InvalidConfigFileException("No global log files specified")
                 
-                for d in self.domains.values():
+                doms = self.domains
+                self.domains = OrderedDict()
+                
+                #reorder domains to the correct order (from higher to lower in the hierarchy)
+                for d in sorted(doms.values(), key=lambda d: len(utils.split_domain(d.name))):
+                    self.domains[d.name] = d
                     d.validate()
 
         except FileNotFoundError:
@@ -88,30 +93,11 @@ class ServerData:
         """
         self.get_domain(domain, False).set_entries(new_entries)
         
-    def get_log_files(self, domain_name:str):
-        """
-        Determines the list of log files that should be used when logging
-        events about the given domain
-        Returns a list of log file paths
         
-        Arguments:
-            domain_name -> A valid domain name (matches DOMAIN or FULL_DOMAIN). Case and termination insensitive
-        """
-        domain_name = utils.normalize_domain(domain_name)
-        
-        if domain_name not in self.domains:
-            return self.logFiles
-        
-        logs = self.domains[domain_name].logFiles
-        if logs == []:
-            return self.logFiles
-        else:
-            return logs
-        
-    def get_first_servers(self, domain_name:str):   #TODO: return all matches, ordered from most to least specific?
+    def get_first_servers(self, domain_name:str):   #TODO: ordered from least to most specific
         """
         Determines the first servers to ask if a query can't be answered locally. This is
-        the top servers if no default domain is set, or the default server (+ the roots) if it is
+        the top servers if no default domain is set, or the default server if it is
         Returns a list of ip addresses
         
         Arguments:
@@ -119,21 +105,25 @@ class ServerData:
         """
         d = utils.best_match(domain_name, self.defaultServers)
         if d:
-            return [self.defaultServers[d]] + self.topServers
+            return list(filter(lambda x: x != "127.0.0.1", self.defaultServers[d]))
         else:
             return self.topServers
-            
-    def answer_query(self, query:QueryInfo):    #TODO: add answers from all domains instead? least specific first?
+        
+    def answer_query(self, query:QueryInfo):
         """
         Attempts to answer the given query using the stored domains (SP and SS)
         Returns a QueryResponse
         If no answer could be found, an empty QueryResponse is returned
         """
-        d = utils.best_match(query.name, self.domains)
-        if d:
-            return self.domains[d].answer_query(query)
-        else:
-            return QueryResponse()
+        
+        matches = filter(lambda d: utils.is_subdomain(query.name, d.name), self.domains.values())
+        
+        for d in matches:
+            ans = d.answer_query(query)
+            if ans.positive():
+                return ans
+
+        return QueryResponse()
 
     def get_domain(self, domain_name:str, primary:Optional[bool] = None, create:bool = False):
         """
@@ -172,7 +162,7 @@ class ServerData:
         """
         Returns a list containing all primary domains (Domain) in the current instance
         """
-        return filter(lambda d: d.primary, self.values())
+        return filter(lambda d: d.primary, self.domains.values())
     
     def get_secondary_domains(self):
         """
@@ -212,12 +202,16 @@ class ServerData:
                     raise InvalidConfigFileException(f"ST parameter was {domain} expected root")
                 try:
                     with open(data,'r') as file:
-                        self.topServers+=file.readlines() #TODO: check values
+                        for line in file.readlines():
+                            if not re.search(f'^{utils.IP_MAYBE_PORT}$', line):
+                                raise InvalidTopServersException(f"{line} isn't a valid IP address")
+                        
+                            self.topServers.append(line)
                 except:
                     raise InvalidConfigFileException(f"invalid ST file {data}")
             elif lineType == ConfigType.LG:
                 if domain == 'all.':
-                    self.logFiles.append(data) #TODO: check data
+                    logging.logger.setupLogger(data, None, True)
                 else:
                     self.get_domain(domain, create=True).add_log_file(data)
                     
