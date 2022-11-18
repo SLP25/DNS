@@ -80,7 +80,7 @@ class Logging:
     def __stardizeMessage__(self,etype:LoggingEntryType,ip:str,data:list):
         now=datetime.datetime.now()
         timestamp=now.strftime("%d:%m:%Y.%H:%M:%S:")+now.strftime("%f")[:3]#19:10:2022.11:20:50:020
-        return ' '.join([timestamp,str(etype),ip]+[str(x) for x in data])
+        return ' '.join([timestamp,str(etype.name),ip]+[str(x) for x in data])
         
         
         
@@ -91,5 +91,4 @@ class Logging:
             logger=self.mainLogger
         else:
             logger=self.domains[domain]
-        logger.info(self.__stardizeMessage__(etype,address,data))
-        print(self.__stardizeMessage__(etype,address,data)) #TODO: tirar isto e pôr o logger a funcionar
+        logger.critical(self.__stardizeMessage__(etype,address,data))
