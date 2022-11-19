@@ -15,6 +15,7 @@ Date of Modification: 19/11/2022 18:10
 """
 
 
+import threading
 import time
 import socket
 from common.tcpWrapper import TCPWrapper
@@ -77,7 +78,24 @@ def processPacket(serverData, packet, ip):
     return [ZoneTransferPacket(SequenceNumber(0), ZoneStatus.BAD_REQUEST, "")]
 
 def zoneTransferSPClient(serverData, conn, address):
-    pass
+    try:
+        clientConnected = TCPWrapper(conn, ZoneTransferPacket.split_messages, 
+                                        maxSize, address)
+
+        data = clientConnected.read()
+        while data != b'':
+            print(address)
+            packet = ZoneTransferPacket.from_str(data.decode())
+            #print(str(packet))
+            response_packets = processPacket(serverData, packet, address[0])
+            for response_packet in response_packets:
+                print(str(response_packet))
+                clientConnected.write(str(response_packet).encode())
+
+            data = clientConnected.read()
+    finally:
+        clientConnected.shutdown(socket.SHUT_WR)
+        clientConnected.close()
 
 def zoneTransferSP(serverData, localIP, port):
     """
@@ -99,24 +117,8 @@ def zoneTransferSP(serverData, localIP, port):
         #Run forever
         while True:
             (conn, address) = tcpSocket.accept()
-            clientConnected = TCPWrapper(conn, ZoneTransferPacket.split_messages, 
-                                        maxSize, address)
-
-            #TODO: check if client is authorized (client_ip in serverData.get_domain(domain_name, True).authorizedSS)
-            data = clientConnected.read()
-            while data != b'':
-                print(address)
-                packet = ZoneTransferPacket.from_str(data.decode())
-                #print(str(packet))
-                response_packets = processPacket(serverData, packet, address[0])
-                for response_packet in response_packets:
-                    print(str(response_packet))
-                    clientConnected.write(str(response_packet).encode())
-
-                data = clientConnected.read()
-            clientConnected.shutdown(socket.SHUT_WR)
-            clientConnected.close()
-
+            t = threading.Thread(target=zoneTransferSPClient, args=(serverData, conn, address))
+            t.start()
     finally:
         tcpSocket.close()
 
