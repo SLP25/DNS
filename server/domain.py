@@ -48,6 +48,9 @@ class PrimaryDomain(Domain):
         self.authorizedSS = []
         self.database = None
         
+    def is_authorized(self, ip):
+        return ip in self.authorizedSS
+        
     def set_database(self, path:str):    
         """
         Reads the database of the domain from the specidied path

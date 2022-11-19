@@ -17,7 +17,7 @@ Date of Modification: 19/11/2022 18:10
 
 import time
 import socket
-from common.tcpWrapper import TCPClient
+from common.tcpWrapper import TCPWrapper
 from common.utils import decompose_address
 
 #TODO: Handle errors (wrong status etc)
@@ -31,7 +31,7 @@ Max zone transfer packet size in bytes
 maxSize = 1024
 
 #TODO: Validate request
-def processPacket(serverData, packet):
+def processPacket(serverData, packet, ip):
     """
     Given a packet an SP received from an SS, computes the packet(s) to send back
     in response. Auxiliary function for zoneTransferSP
@@ -44,23 +44,40 @@ def processPacket(serverData, packet):
     print(packet.data)
     domain = serverData.get_domain(packet.get_domain(), True) if packet.get_domain() else None
     entries = domain.database.entries if domain else None
+    #TODO: Only use domain in first request
+    status = ZoneStatus.SUCCESS
+    result = ""
+    print(domain)
+    if domain != None and not domain.is_authorized(ip):
+        status = ZoneStatus.UNAUTHORIZED
+    elif domain == None and packet.sequenceNumber.value in [0,2,4]:
+        status = ZoneStatus.NO_SUCH_DOMAIN
 
     if packet.sequenceNumber == SequenceNumber(0):
-        return [ZoneTransferPacket(SequenceNumber(1), ZoneStatus(0), domain.database.serial)]
+        if status == ZoneStatus.SUCCESS:
+            result = domain.database.serial
+        return [ZoneTransferPacket(SequenceNumber(1), status, result)]
 
     if packet.sequenceNumber == SequenceNumber(2):
-        return [ZoneTransferPacket(SequenceNumber(3), ZoneStatus(0), len(entries))]
+        if status == ZoneStatus.SUCCESS:
+            result = len(entries)
+        return [ZoneTransferPacket(SequenceNumber(3), status, result)]
 
 
     if packet.sequenceNumber == SequenceNumber(4):
+        if domain == None:
+            return [ZoneTransferPacket(SequenceNumber(5), ZoneStatus.NO_SUCH_DOMAIN, "")]
+        if status == ZoneStatus.UNAUTHORIZED:
+            return [ZoneTransferPacket(SequenceNumber(5), status, "")]
         res = []
         for index, entry in enumerate(entries):
             res.append(ZoneTransferPacket(SequenceNumber(5), ZoneStatus(0), (index, entry)))
         return res
 
-    
-    if packet.sequenceNumber == SequenceNumber(6):
-        return [ZoneTransferPacket(SequenceNumber(7), ZoneStatus(0), None)]
+    return [ZoneTransferPacket(SequenceNumber(0), ZoneStatus.BAD_REQUEST, "")]
+
+def zoneTransferSPClient(serverData, conn, address):
+    pass
 
 def zoneTransferSP(serverData, localIP, port):
     """
@@ -82,20 +99,20 @@ def zoneTransferSP(serverData, localIP, port):
         #Run forever
         while True:
             (conn, address) = tcpSocket.accept()
-            clientConnected = TCPClient(conn, ZoneTransferPacket.split_messages, 
+            clientConnected = TCPWrapper(conn, ZoneTransferPacket.split_messages, 
                                         maxSize, address)
 
             #TODO: check if client is authorized (client_ip in serverData.get_domain(domain_name, True).authorizedSS)
             data = clientConnected.read()
             while data != b'':
-                print(data)
+                print(address)
                 packet = ZoneTransferPacket.from_str(data.decode())
                 #print(str(packet))
-                response_packets = processPacket(serverData, packet)
+                response_packets = processPacket(serverData, packet, address[0])
                 for response_packet in response_packets:
                     print(str(response_packet))
                     clientConnected.write(str(response_packet).encode())
-                    #time.sleep(1)
+
                 data = clientConnected.read()
             clientConnected.shutdown(socket.SHUT_WR)
             clientConnected.close()
@@ -224,7 +241,7 @@ def zoneTransferSS(serverData, domain):
         # Create a TCP/IP socket
         tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp.connect(decompose_address(domain.primaryServer))
-        tcpSocket = TCPClient(tcp, ZoneTransferPacket.split_messages, maxSize)
+        tcpSocket = TCPWrapper(tcp, ZoneTransferPacket.split_messages, maxSize)
         print("INICIO")
 
         try:
