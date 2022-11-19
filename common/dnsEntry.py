@@ -1,8 +1,8 @@
 """
-File containing classes DNSEntry and EntryType 
+File containing classes DNSEntry and EntryType
 
-Last Modification: Added documentation
-Date of Modification: 14/11/2022 11:11
+Last Modification: Fix __str__ when priority is None
+Date of Modification: 19/11/2022 18:11
 """
 
 from enum import Enum
@@ -136,7 +136,25 @@ class DNSEntry:
         self.value = type.validate_value(value)
         self.ttl = ttl
         self.priority = priority
-       
+      
+    @staticmethod
+    def from_str(line: str):
+        match = re.search(
+            f'^\s*(?P<p>{PARAMETER_CHAR}+)\s+(?P<t>{ENTRY_TYPE})\s+(?P<v>[^\s]+)\s+(?P<ttl>\d+)(\s+(?P<pr>\d+))?\s*$',
+            line)
+        
+        if match == None:
+            raise ValueError(f"{line} doesn't match the pattern {{parameter}} {{type}} {{value}} {{ttl}} {{priority}}?")
+    
+        parameter = match.group('p')
+        type = match.group('t')
+        value = match.group('v')
+        ttl = match.group('ttl')
+        priority = match.group('pr')
+        
+        return DNSEntry.from_text(parameter,type,value,ttl,priority)
+        
+        
     @staticmethod     
     def from_text(parameter:str, type:str, value:str, ttl:str, priority:Optional[str] = None):
         """
@@ -201,4 +219,7 @@ class DNSEntry:
         """
         Converts the current instance of DNSEntry to its string representation
         """
-        return f"{self.parameter} {self.type.name} {self.value} {self.ttl} {self.priority}"
+        if self.priority:
+            return f"{self.parameter} {self.type.name} {self.value} {self.ttl} {self.priority}"
+        else:
+            return f"{self.parameter} {self.type.name} {self.value} {self.ttl}"

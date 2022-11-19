@@ -16,7 +16,7 @@ from server.exceptions import InvalidConfigFileException
 import re
 import common.utils as utils
 from server.database import Database
-import common.logging as logging
+import common.ourLogging as logging
 
 class Domain:
     """
@@ -48,18 +48,18 @@ class PrimaryDomain(Domain):
         self.authorizedSS = []
         self.database = None
         
-    def set_databse(self, path:str):    
+    def set_database(self, path:str):    
         """
         Reads the database of the domain from the specidied path
         If the path to the file is invalid, an InvalidConfigFileException is raised
         If the parsing of the file fails, an InvalidDatabaseException is raised
         If the database already exists, raises an InvalidConfigFileException
-        """    
+        """
         if self.database != None:
             raise InvalidConfigFileException("Duplicated DB for domain " + self.name)
-        
+
         self.database = Database(path)
-        
+
     def add_authorizedSS(self, authorizedSS:str):
         """
         Adds the ip address of a SS to the list of authorized SS's
@@ -67,9 +67,9 @@ class PrimaryDomain(Domain):
         """
         if not re.search(f'^{utils.IP_MAYBE_PORT}$', authorizedSS):
             raise InvalidConfigFileException(f"Invalid ip address {authorizedSS}")
-        
+
         self.authorizedSS.append(authorizedSS)
-        
+
     def validate(self):
         """
         Determines whether the current instance has been fully parsed and can start answering queries
@@ -77,14 +77,14 @@ class PrimaryDomain(Domain):
         """
         if self.database == None:
             raise InvalidConfigFileException("No database file specified for primary domain " + self.name)
-    
+
     def answer_query(self, query:QueryInfo):
         """
         Answers the given query by querying the database
         Returns a QueryResponse
         """
         return self.database.answer_query(query)
-    
+
 class SecondaryDomain(Domain):
     """
     Stores all information of an authoritative server relative to a single secondary domain
@@ -122,7 +122,7 @@ class SecondaryDomain(Domain):
         """
         if self.primaryServer == None:
             raise InvalidConfigFileException("No primary server specified for secondary domain " + self.name)
-        
+
     #TODO: Thread safety
         """
         Replaces all entries of a certain domain with the given new entries.

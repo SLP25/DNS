@@ -10,14 +10,15 @@ by asking how many entries the database has. The SP answers, the SS acknowledges
 Then, the SP will send one segment per entry. When all segments are received by the SS, it will confirm 
 having received everything. The SP will acknowledge this, terminating the zone transfer.
 
-Last Modification: New TCP wrapper
-Date of Modification: 04/11/2022 18:56
+Last Modification: Multiprocessing
+Date of Modification: 19/11/2022 18:10
 """
 
 
 import time
 import socket
 from common.tcpClient import TCPClient
+from common.utils import decompose_address
 
 #TODO: Handle errors (wrong status etc)
 #TODO: Proper timeout
@@ -40,10 +41,10 @@ def processPacket(serverData, packet):
     serverData : ServerData -> the configuration of the server
     packet : ZoneTransferPacket -> the packet received
     """
-    
-    domain = serverData.get_domain(packet.data, True)
-    entries = domain.get_entries()
-    
+    print(packet.data)
+    domain = serverData.get_domain(packet.get_domain(), True) if packet.get_domain() else None
+    entries = domain.database.entries if domain else None
+
     if packet.sequenceNumber == SequenceNumber(0):
         return [ZoneTransferPacket(SequenceNumber(1), ZoneStatus(0), 1)]
 
@@ -193,7 +194,7 @@ def confirmEntries(tcpSocket):
     
     tcpSocket -> the socket used to communicate with the SP
     """
-    sentPacket = ZoneTransferPacket(SequenceNumber(6), ZoneStatus(0), None)
+    sentPacket = ZoneTransferPacket(SequenceNumber(6), ZoneStatus(0), "")
     tcpSocket.sendall(str(sentPacket).encode())
 
 
@@ -217,26 +218,30 @@ def zoneTransferSS(serverData):
     serverData : ServerData -> The configuration of the server
     """
     while True:
+        #logger.log
+        #TODO: One thread per domain
         for domain in serverData.get_secondary_domains():
             # Create a TCP/IP socket
             tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            tcpSocket.connect(domain.primaryServer)
+            tcpSocket.connect(decompose_address(domain.primaryServer))
 
             print("INICIO")
+
             #try:
-            versionNumber = getServerVersionNumber(tcpSocket, domain)
+            versionNumber = getServerVersionNumber(tcpSocket, domain.name)
             print("VERSION NUMBER")
             #TODO: Check version Number
             if versionNumber < 0:
                 continue
-            numberEntries = getDomainNumberEntries(tcpSocket, domain)
-            acknowledgeNumberEntries(tcpSocket, domain, numberEntries)
+            numberEntries = getDomainNumberEntries(tcpSocket, domain.name)
+            acknowledgeNumberEntries(tcpSocket, domain.name, numberEntries)
             print("Entries")
-            getAllEntries(tcpSocket, domain, numberEntries)
-            
+            getAllEntries(tcpSocket, domain.name, numberEntries)
+
             confirmEntries(tcpSocket)
-            
+
             receiveEndOfTransfer(tcpSocket)
+            print("End of zone transfer")
             #finally:
             #    print("Upsie")
             #    tcpSocket.close()

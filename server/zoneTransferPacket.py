@@ -14,8 +14,8 @@ documentation for more details)
 Details regarding the zone transfer protocol can be found in the documentation for
 zoneTransfer.py
 
-Last modification: Creation
-Date of modification: 30/10/2022 11:15
+Last modification: Add from_str
+Date of modification: 19/11/2022 18:10
 '''
 
 from enum import Enum
@@ -91,6 +91,12 @@ class ZoneTransferPacket:
         self.status = status
         self.data = data
         pass
+    
+    def get_domain(self):
+        if self.sequenceNumber.value in [0,1,2]:
+            return self.data
+        elif self.sequenceNumber.value in [4]:
+            return self.data[1]
 
     @staticmethod
     def split_messages(buffer):
@@ -153,7 +159,7 @@ class ZoneTransferPacket:
             data_search = re.search("\\((([0-9]{1,5}|65535),(.*))\\)", search.group(4))
             if data_search is None:
                 raise InvalidZoneTransferPacketException("No order for dns entry given")
-            data = (int(data_search.group(2)), DNSEntry(data_search.group(3), fromFile= True))
+            data = (int(data_search.group(2)), DNSEntry.from_str(data_search.group(3)))
         elif sequenceNumber.value in [4]:
             data_search = re.search("\\((([0-9]{1,5}|65535),(.*))\\)", search.group(4))
             if data_search is None:

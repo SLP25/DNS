@@ -14,7 +14,7 @@ from common.query import QueryResponse
 from .exceptions import InvalidConfigFileException, InvalidTopServersException, NoConfigFileException
 from common.dnsEntry import DNSEntry, EntryType
 import common.utils as utils
-import common.logging as logging
+import common.ourLogging as logging
 from .domain import Domain, PrimaryDomain, SecondaryDomain
 from collections import OrderedDict
 import re
@@ -57,7 +57,6 @@ class ServerData:
         """
         Constructs an instance of ServerData from the given path to a server configuration file
         """
-        
         self.domains = OrderedDict()    #name:domain  #TODO: separar em primary e seconday?
         self.defaultServers = {}        #domain:value
         self.topServers = []            #ips
@@ -163,13 +162,13 @@ class ServerData:
         Returns a list containing all primary domains (Domain) in the current instance
         """
         return filter(lambda d: d.primary, self.domains.values())
-    
+
     def get_secondary_domains(self):
         """
         Returns a list containing all secondary domains (Domain) in the current instance
         """
-        return filter(lambda d: not d.primary, self.domains.values())
-    
+        return list(filter(lambda d: isinstance(d, SecondaryDomain), self.domains.values()))
+
     def __parseLine__(self, line):
         if re.search(utils.COMMENT_LINE, line):
             return
@@ -177,16 +176,16 @@ class ServerData:
         match = re.search(f'^\s*(?P<d>{utils.DOMAIN}|\.)\s+(?P<t>{CONFIG_TYPE})\s+(?P<v>[^\s]+)\s*$', line)
         if match == None:
             raise InvalidConfigFileException(f"{line} doesn't match the pattern {{domain}} {{ConfigType}} {{data}}")
-        
+
         domain = utils.normalize_domain(match.group('d'))
         valueType = match.group('t')
         data = match.group('v')
 
         try:
             lineType = ConfigType[valueType]
-            
+
             if lineType == ConfigType.DB:
-                self.get_domain(domain, True, True).set_databse(data)
+                self.get_domain(domain, True, True).set_database(data)
             elif lineType == ConfigType.SP:
                 self.get_domain(domain, False, True).set_primary_server(data)
             elif lineType == ConfigType.SS:
@@ -205,7 +204,7 @@ class ServerData:
                         for line in file.readlines():
                             if not re.search(f'^{utils.IP_MAYBE_PORT}$', line):
                                 raise InvalidTopServersException(f"{line} isn't a valid IP address")
-                        
+
                             self.topServers.append(line)
                 except:
                     raise InvalidConfigFileException(f"invalid ST file {data}")
@@ -214,6 +213,6 @@ class ServerData:
                     logging.logger.setupLogger(data, None, True)
                 else:
                     self.get_domain(domain, create=True).add_log_file(data)
-                    
+
         except ValueError:
             raise InvalidConfigFileException(line + " has no valid type")

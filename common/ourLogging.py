@@ -59,6 +59,7 @@ class Logging:
             handlerC = logging.StreamHandler(sys.stdout) 
             logger.addHandler(handlerC)
         if name==None:
+
             self.mainLogger=logger
         else:
             self.domains[name]=logger

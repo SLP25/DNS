@@ -6,17 +6,20 @@ the server state accordingly. It also has the main function
 responsible for receiving and sending DNS messages. Processing is
 done in another file.
 
-Last modification: Added timeout
-Date of Modification: 16/11/2022 13:53
+Last modification: Multiprocessing
+Date of Modification: 19/11/2022 18:11
 '''
 #TODO: Terminate on SIGINT/SIGTERM
 
+from multiprocessing import Process
+from multiprocessing.managers import BaseManager
 import random
 import socket
-from common.logging import Logging, LoggingEntryType
-import common.logging as logging
+from common.ourLogging import Logging, LoggingEntryType
+import common.ourLogging as logging
 from common.query import QueryResponse
 from server.cache import Cache
+from server.zoneTransfer import zoneTransferSP, zoneTransferSS
 from common.dnsEntry import EntryType
 from common.udp import UDP
 from common.dnsMessage import DNSMessage, QueryInfo
@@ -24,71 +27,76 @@ from server.serverData import ServerData
 import common.utils as utils
 import sys
 
+class MyManager(BaseManager):
+    pass
+
 '''
 Represents a DNS Server, with its own cache and configuration data
 '''
 class Server:
-    
     def __init__(self, resolver:bool, config_file:str):
         '''
         Creates a new instance of the class with the given resolver status and
         the given configuration file path
         '''
+        MyManager.register('ServerData', ServerData)
+
+        self.manager = MyManager()
+        self.manager.start()
+        self.config = self.manager.ServerData(config_file)
         self.resolver = resolver
         self.supports_recursive = resolver
-        self.config = ServerData(config_file)
         self.cache = Cache()
-        
+
         #TODO: init zone transfers
-        
+
     def answers_query(self, query:QueryInfo):
         '''
         Determines whether the server should answer the specified query
-        
+
         If the server is a resolver (initialized with -r flag), it answers every query
         Otherwise, only queries about certain domains (DD in config file) are answered
         '''
         if self.resolver:
             return True
-        
+
         for k in self.config.defaultServers:
             if utils.is_subdomain(query.name, k):
                 return True
-            
+
         return False
-    
+
     def query(self, address, query:QueryInfo, recursive:bool):
         """
         Queries the dns server in address with the given query
         Returns the QueryResponse, or None if the request timed out or response failed to parse
         """
-        
         ip, port = utils.decompose_address(address)
         udp = UDP(timeout=timeout)
         msg = DNSMessage.from_query(query, recursive)
-        
-        logger.log(LoggingEntryType.QE, address, [msg], query.name)
-        
+
+        #logger.log(LoggingEntryType.QE, address, [msg], query.name)
+
         try:
             udp.send(str(msg).encode(), ip, port) #TODO: check debug mode (if off, send bytes instead of string)
             bytes, _, _ = udp.receive()
         except socket.timeout:
-            logger.log(LoggingEntryType.TO, address, ['DNS query timed out'], query.name)
+            #logger.log(LoggingEntryType.TO, address, ['DNS query timed out'], query.name)
             return None
-        
+
         try:
             ans = DNSMessage.from_string(bytes.decode()) #TODO: check debug mode
-            
+
             if ans.is_query():
-                logger.log(LoggingEntryType.ER, address, ["The received DNSMessage isn't a response: ", ans], query.name)
+                #logger.log(LoggingEntryType.ER, address, ["The received DNSMessage isn't a response: ", ans], query.name)
                 return None
             else:
-                logger.log(LoggingEntryType.RR, address, [ans], query.name)
+                #logger.log(LoggingEntryType.RR, address, [ans], query.name)
                 return ans.response
         except:
-            logger.log(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"], query.name)
+            #logger.log(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"], query.name)
             return None
-    
+
     def query_any(self, addresses, query:QueryInfo, recursive:bool):
         """
         Queries the dns servers listed in addresses with the given query
@@ -98,7 +106,7 @@ class Server:
             ans = self.query(a, query, recursive)
             if ans:
                 return ans
-            
+
     def resolve_address(self, hostname):
         """
         For the given domain name, returns a list with the corresponding ip addresses
@@ -106,7 +114,7 @@ class Server:
         """
         ans = self.answer_query(QueryInfo(hostname, EntryType.A), True)
         return ans.values if ans else []
-    
+
     def answer_query(self, query:QueryInfo, recursive:bool):
         """
         Given a query and whether to run recursively, returns an
@@ -120,62 +128,62 @@ class Server:
         ans = self.config.answer_query(query)   #try database
         if ans.positive() or not recursive:
             return ans
-        
+
         #start search from the root/default servers
         next_dns = self.config.get_first_servers(query.name)
         prev_ans = None
-        
+
         while True:
             ans = self.query_any(next_dns, query, recursive)
             if not ans:     #can't contact anyone :(
                 return prev_ans if prev_ans else QueryResponse() #TODO: nao responder? resposta vazia? ou resposta anterior?
-            
+
             self.cache.add_response(ans)
             if ans.positive() or not recursive:     #success!
                 return ans
-        
+
             prev_ans = ans  #store previous answer
-        
+
             #Query wasn't successful yet, so the next step is to contact the next dns in the hierarchy
             #First, order received authorities from least to most specific (assume all of them match)
             ans.authorities.sort(key=lambda e: len(utils.split_domain(e.parameter)))
             auths = [e.value for e in ans.authorities]                              #next, get the hostname of their dns
             next_dns = utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
-        
-    
+
     def process_message(self, message, ip, port):
         '''
         Processes the received message from the given address
         Returns a response message, or None if the query shouldn't be answered (see answers_query())
         '''
         address = f'{ip}:{port}'
-        
+
         try:
             msg = DNSMessage.from_string(message.decode())
         except:
-            logger.log(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"])
-            return None 
-        
-        if not msg.is_query():
-            logger.log(LoggingEntryType.ER, address, ["The received DNSMessage isn't a query:", msg])
+            #logger.log(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"])
             return None
-        
+
+        if not msg.is_query():
+            #logger.log(LoggingEntryType.ER, address, ["The received DNSMessage isn't a query:", msg])
+            return None
+
         if not self.answers_query(msg.query):
             return None
-        
-        logger.log(LoggingEntryType.QE, address, [msg], msg.query.name)
+
+        #logger.log(LoggingEntryType.QE, address, [msg], msg.query.name)
         ans = self.answer_query(msg.query, msg.recursive and self.supports_recursive)
         if ans:
             resp = msg.generate_response(ans, self.supports_recursive)
-            logger.log(LoggingEntryType.RP, address, [resp], msg.query.name)
+            #logger.log(LoggingEntryType.RP, address, [resp], msg.query.name)
             return str(resp).encode()
 
-    def run(self):
+    def run_main(self):
         '''
         Main server loop
         Receives DNS queries, and calls the processing function
         '''
-        logger.log(LoggingEntryType.ST, '127.0.0.1', ['port:', port, 'timeout:', timeout, 'debug:', debug])
+        print(logger)
+        #logger.log(LoggingEntryType.ST, '127.0.0.1', ['port:', port, 'timeout:', timeout, 'debug:', debug])
         self.server = UDP(localPort=port,binding = True)
 
         while(True):
@@ -184,6 +192,16 @@ class Server:
             if ans:
                 self.server.send(ans, ip, p)
                 
+    def run(self):
+        procs = []
+        procs.append(Process(target=zoneTransferSP, args=[self.config, "127.0.0.1", port]))
+        procs.append(Process(target=zoneTransferSS, args=[self.config]))
+        
+        for proc in procs:
+            proc.start()
+        
+        self.run_main()
+        
         #logger.log(LoggingEntryType.SP, '127.0.0.1', ['TODO: cenas aqui'])
     
 def extract_flag(flag):
@@ -229,10 +247,11 @@ def main():
     global logger
     logging.logger = Logging(debug)
     logger = logging.logger
-
+    print(logger)
     #Config
     config_file = extract_flag("-c")
     server = Server(resolver, config_file)
+    print(logger)
     server.run()
     
 if __name__ == "__main__":
