@@ -12,11 +12,11 @@ Date of Modification: 14/11/2022 12:38
 from common.dnsEntry import DNSEntry, EntryType
 from common.query import QueryInfo
 from common.query import QueryResponse
+from common.logger import LogCreate,LogMessage,LoggingEntryType
 from server.exceptions import InvalidConfigFileException
 import re
 import common.utils as utils
 from server.database import Database
-import common.logging as logging
 
 class Domain:
     """
@@ -29,11 +29,11 @@ class Domain:
         self.name = name
         self.logFiles = []
     
-    def add_log_file(self, log_file:str):
+    def add_log_file(self, log_file:str,logger):
         """
         Adds a specific log file path to the domian
         """
-        logging.logger.setupLogger(log_file, self.name)
+        logger.put(LogCreate(log_file, self.name))
         
 class PrimaryDomain(Domain):
     """

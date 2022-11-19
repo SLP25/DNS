@@ -13,7 +13,8 @@ Date of Modification: 16/11/2022 13:53
 
 import random
 import socket
-from common.logging import Logging, LoggingEntryType
+from common.logger import logger_process, LoggingEntryType,LogCreate,LogMessage
+from multiprocessing import Queue,Process
 import common.logging as logging
 from common.query import QueryResponse
 from server.cache import Cache
@@ -36,7 +37,7 @@ class Server:
         '''
         self.resolver = resolver
         self.supports_recursive = resolver
-        self.config = ServerData(config_file)
+        self.config = ServerData(config_file,logger)
         self.cache = Cache()
         
         #TODO: init zone transfers
@@ -67,26 +68,26 @@ class Server:
         udp = UDP(timeout=timeout)
         msg = DNSMessage.from_query(query, recursive)
         
-        logger.log(LoggingEntryType.QE, address, [msg], query.name)
+        logger.put(LogMessage(LoggingEntryType.QE, address, [msg],query.name))
         
         try:
             udp.send(str(msg).encode(), ip, port) #TODO: check debug mode (if off, send bytes instead of string)
             bytes, _, _ = udp.receive()
         except socket.timeout:
-            logger.log(LoggingEntryType.TO, address, ['DNS query timed out'], query.name)
+            logger.put(LogMessage(LoggingEntryType.TO, address, ['DNS query timed out'],query.name))
             return None
         
         try:
             ans = DNSMessage.from_string(bytes.decode()) #TODO: check debug mode
             
             if ans.is_query():
-                logger.log(LoggingEntryType.ER, address, ["The received DNSMessage isn't a response: ", ans], query.name)
+                logger.put(LogMessage(LoggingEntryType.ER, address, ["The received DNSMessage isn't a response: ", ans],query.name))
                 return None
             else:
-                logger.log(LoggingEntryType.RR, address, [ans], query.name)
+                logger.put(LogMessage(LoggingEntryType.RR, address, [ans],query.name))
                 return ans.response
         except:
-            logger.log(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"], query.name)
+            logger.put(LogMessage(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"],query.name))
             return None
     
     def query_any(self, addresses, query:QueryInfo, recursive:bool):
@@ -153,21 +154,21 @@ class Server:
         try:
             msg = DNSMessage.from_string(message.decode())
         except:
-            logger.log(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"])
+            logger.put(LogMessage(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"]))
             return None 
         
         if not msg.is_query():
-            logger.log(LoggingEntryType.ER, address, ["The received DNSMessage isn't a query:", msg])
+            logger.put(LogMessage(LoggingEntryType.ER, address, ["The received DNSMessage isn't a query:", msg]))
             return None
         
         if not self.answers_query(msg.query):
             return None
         
-        logger.log(LoggingEntryType.QE, address, [msg], msg.query.name)
+        logger.put(LogMessage(LoggingEntryType.QE, address, [msg],msg.query.name))
         ans = self.answer_query(msg.query, msg.recursive and self.supports_recursive)
         if ans:
             resp = msg.generate_response(ans, self.supports_recursive)
-            logger.log(LoggingEntryType.RP, address, [resp], msg.query.name)
+            logger.put(LogMessage(LoggingEntryType.RP, address, [resp],msg.query.name))
             return str(resp).encode()
 
     def run(self):
@@ -175,7 +176,7 @@ class Server:
         Main server loop
         Receives DNS queries, and calls the processing function
         '''
-        logger.log(LoggingEntryType.ST, '127.0.0.1', ['port:', port, 'timeout:', timeout, 'debug:', debug])
+        logger.put(LogMessage(LoggingEntryType.ST, '127.0.0.1', ['port:', port, 'timeout:', timeout, 'debug:', debug]))
         self.server = UDP(localPort=port,binding = True)
 
         while(True):
@@ -227,8 +228,9 @@ def main():
     timeout = int(extract_flag("-t")) / 1000    #convert to seconds
     
     global logger
-    logging.logger = Logging(debug)
-    logger = logging.logger
+    logger=Queue()
+    p=Process(target=logger_process,args=(logger, debug))
+    p.start()
 
     #Config
     config_file = extract_flag("-c")
