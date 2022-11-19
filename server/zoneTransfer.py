@@ -17,7 +17,7 @@ Date of Modification: 19/11/2022 18:10
 
 import time
 import socket
-from common.tcpClient import TCPClient
+from common.tcpWrapper import TCPClient
 from common.utils import decompose_address
 
 #TODO: Handle errors (wrong status etc)
@@ -81,7 +81,9 @@ def zoneTransferSP(serverData, localIP, port):
     try:
         #Run forever
         while True:
-            clientConnected = TCPClient(tcpSocket.accept(), ZoneTransferPacket.split_messages, maxSize)
+            (conn, address) = tcpSocket.accept()
+            clientConnected = TCPClient(conn, ZoneTransferPacket.split_messages, 
+                                        maxSize, address)
 
             #TODO: check if client is authorized (client_ip in serverData.get_domain(domain_name, True).authorizedSS)
             data = clientConnected.read()
@@ -93,8 +95,10 @@ def zoneTransferSP(serverData, localIP, port):
                 for response_packet in response_packets:
                     print(str(response_packet))
                     clientConnected.write(str(response_packet).encode())
-                    time.sleep(1)
+                    #time.sleep(1)
                 data = clientConnected.read()
+            clientConnected.shutdown(socket.SHUT_WR)
+            clientConnected.close()
 
     finally:
         tcpSocket.close()
@@ -115,8 +119,8 @@ def getServerVersionNumber(tcpSocket, domain):
     int : The version number of the database
     """
     sentPacket = ZoneTransferPacket(SequenceNumber(0), ZoneStatus(0), domain)
-    tcpSocket.sendall(str(sentPacket).encode())
-    data = tcpSocket.recv(maxSize)
+    tcpSocket.write(str(sentPacket).encode())
+    data = tcpSocket.read()
     receivedPacket = ZoneTransferPacket.from_str(data.decode())
     return receivedPacket.data
 
@@ -135,8 +139,8 @@ def getDomainNumberEntries(tcpSocket, domain):
     int : the number of entries to expect for the domain
     """
     sentPacket = ZoneTransferPacket(SequenceNumber(2), ZoneStatus(0), domain)
-    tcpSocket.sendall(str(sentPacket).encode())
-    data = tcpSocket.recv(maxSize)
+    tcpSocket.write(str(sentPacket).encode())
+    data = tcpSocket.read()
     receivedPacket = ZoneTransferPacket.from_str(data.decode())
     return receivedPacket.data
 
@@ -152,7 +156,7 @@ def acknowledgeNumberEntries(tcpSocket, domain, entries):
     entries : int    -> the number of entries to expect
     """
     sentPacket = ZoneTransferPacket(SequenceNumber(4), ZoneStatus(0), (entries, domain))
-    tcpSocket.sendall(str(sentPacket).encode())
+    tcpSocket.write(str(sentPacket).encode())
 
 def getAllEntries(tcpSocket, domain, entries):
     """
@@ -166,7 +170,7 @@ def getAllEntries(tcpSocket, domain, entries):
     """
     newEntries = []
     for i in range(entries):
-        data = tcpSocket.recv(maxSize)
+        data = tcpSocket.read()
         receivedPacket = ZoneTransferPacket.from_str(data.decode())
         
 
@@ -193,7 +197,7 @@ def confirmEntries(tcpSocket):
     tcpSocket -> the socket used to communicate with the SP
     """
     sentPacket = ZoneTransferPacket(SequenceNumber(6), ZoneStatus(0), "")
-    tcpSocket.sendall(str(sentPacket).encode())
+    tcpSocket.write(str(sentPacket).encode())
 
 
 def receiveEndOfTransfer(tcpSocket):
@@ -201,7 +205,7 @@ def receiveEndOfTransfer(tcpSocket):
     Receives the end of transfer packet from the SP. Auxiliary function to zoneTransferSS
 
     Arguments:
-    
+
     tcpSocket -> the socket used to communicate with the SP
     """
     tcpSocket.recv(maxSize)
@@ -218,21 +222,21 @@ def zoneTransferSS(serverData, domain):
     while True:
         #logger.log
         # Create a TCP/IP socket
-        tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        tcpSocket.connect(decompose_address(domain.primaryServer))
-
+        tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tcp.connect(decompose_address(domain.primaryServer))
+        tcpSocket = TCPClient(tcp, ZoneTransferPacket.split_messages, maxSize)
         print("INICIO")
 
         try:
             versionNumber = getServerVersionNumber(tcpSocket, domain.name)
             print(versionNumber)
             print(domain.get_serial())
-            
+
             #There is no new version of the database available
             if versionNumber <= domain.get_serial():
                 time.sleep(domain.get_refresh())
                 continue
-            
+
             numberEntries = getDomainNumberEntries(tcpSocket, domain.name)
             acknowledgeNumberEntries(tcpSocket, domain.name, numberEntries)
             print("Entries")

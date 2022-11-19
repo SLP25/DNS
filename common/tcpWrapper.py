@@ -1,5 +1,5 @@
 """
-File implementing a simple wrapper for TCP client sockets.
+File implementing a simple wrapper for TCP sockets.
 
 This wrapper will have a buffer, and will make sure that when
 reading from the socket, only a single message will be returned, and
@@ -7,9 +7,9 @@ not partial messages. For example, in the buffer with "<Message 1><Message 2>",
 a call to the API of the wrapper class would return "<Message 1>" instead of
 "<Message1><Mess" or "Mess<"
 """
-class TCPClient:
+class TCPWrapper:
     """
-    Wrapper class for TCP client connections
+    Wrapper class for TCP connections
     
     
     This wrapper will have a buffer, and will make sure that when
@@ -18,7 +18,7 @@ class TCPClient:
     a call to the API of the wrapper class would return "<Message 1>" instead of
     "<Message1><Mess" or "Mess<"
     """
-    def __init__(self, client, splitFunction, bufferSize):
+    def __init__(self, conn, splitFunction, bufferSize, address = None):
         """Default constructor
 
         Args:
@@ -27,8 +27,8 @@ class TCPClient:
             Must receive one argument - bytes - and return a tuple of bytes
             bufferSize (int): the number of bytes to read from the socket at once
         """
-        self.client = client[0]
-        self.clientAddress = client[1]
+        self.conn = conn
+        self.address = address
         self.splitFunction = splitFunction
         self.bufferSize = bufferSize
         self.buffer = "".encode()
@@ -49,9 +49,11 @@ class TCPClient:
         buffer = result[1]
         
         if message is None:
-            addedBuffer = self.client.recv(self.bufferSize)
-            if len(addedBuffer) == 0:
-                return addedBuffer
+            addedBuffer = self.conn.recv(self.bufferSize)
+            
+            # There is nothing more to read
+            if addedBuffer == b'':
+                return b''
             
             self.buffer = self.buffer + addedBuffer
             return self.read()
@@ -65,4 +67,10 @@ class TCPClient:
         Args:
             message (bytes): the message to send
         """
-        self.client.sendall(message)
+        self.conn.sendall(message)
+        
+    def shutdown(self, mode):
+        self.conn.shutdown(mode)
+        
+    def close(self):
+        self.conn.close()
