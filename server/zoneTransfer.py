@@ -46,7 +46,7 @@ def processPacket(serverData, packet):
     entries = domain.database.entries if domain else None
 
     if packet.sequenceNumber == SequenceNumber(0):
-        return [ZoneTransferPacket(SequenceNumber(1), ZoneStatus(0), 1)]
+        return [ZoneTransferPacket(SequenceNumber(1), ZoneStatus(0), domain.database.serial)]
 
     if packet.sequenceNumber == SequenceNumber(2):
         return [ZoneTransferPacket(SequenceNumber(3), ZoneStatus(0), len(entries))]
@@ -84,16 +84,17 @@ def zoneTransferSP(serverData, localIP, port):
             clientConnected = TCPClient(tcpSocket.accept(), ZoneTransferPacket.split_messages, maxSize)
 
             #TODO: check if client is authorized (client_ip in serverData.get_domain(domain_name, True).authorizedSS)
-
-            for i in range(4):
-                data = clientConnected.read()
+            data = clientConnected.read()
+            while data != b'':
+                print(data)
                 packet = ZoneTransferPacket.from_str(data.decode())
-                print(str(packet))
+                #print(str(packet))
                 response_packets = processPacket(serverData, packet)
                 for response_packet in response_packets:
                     print(str(response_packet))
                     clientConnected.write(str(response_packet).encode())
                     time.sleep(1)
+                data = clientConnected.read()
 
     finally:
         tcpSocket.close()
@@ -163,22 +164,19 @@ def getAllEntries(tcpSocket, domain, entries):
     domain  : String -> the name of the domain to get entries for
     entries : int    -> the number of entries to get
     """
-    newEntries = {}
+    newEntries = []
     for i in range(entries):
         data = tcpSocket.recv(maxSize)
         receivedPacket = ZoneTransferPacket.from_str(data.decode())
-        #TODO: Remove debug print
         
 
         order = int(receivedPacket.data[0])
         entry = receivedPacket.data[1]
-        
-        if (domain, entry.type) not in newEntries.keys():
-            newEntries[(domain, entry.type)] = []
-        
-        newEntries[(domain, entry.type)].append(entry)
-        
-    #TODO: Replace entries
+
+        newEntries.append(entry)
+
+    domain.set_entries(newEntries)
+    
     print("====================================")
     for entry in newEntries:
         print(entry)
@@ -208,42 +206,48 @@ def receiveEndOfTransfer(tcpSocket):
     """
     tcpSocket.recv(maxSize)
 
-def zoneTransferSS(serverData):
+def zoneTransferSS(serverData, domain):
     """
     Function implementing the zone transfer protocol from the point of view of an
     SS.
 
     Arguments:
-    
+
     serverData : ServerData -> The configuration of the server
     """
     while True:
         #logger.log
-        #TODO: One thread per domain
-        for domain in serverData.get_secondary_domains():
-            # Create a TCP/IP socket
-            tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            tcpSocket.connect(decompose_address(domain.primaryServer))
+        # Create a TCP/IP socket
+        tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tcpSocket.connect(decompose_address(domain.primaryServer))
 
-            print("INICIO")
+        print("INICIO")
 
-            #try:
+        try:
             versionNumber = getServerVersionNumber(tcpSocket, domain.name)
-            print("VERSION NUMBER")
-            #TODO: Check version Number
-            if versionNumber < 0:
+            print(versionNumber)
+            print(domain.get_serial())
+            
+            #There is no new version of the database available
+            if versionNumber <= domain.get_serial():
+                time.sleep(domain.get_refresh())
                 continue
+            
             numberEntries = getDomainNumberEntries(tcpSocket, domain.name)
             acknowledgeNumberEntries(tcpSocket, domain.name, numberEntries)
             print("Entries")
-            getAllEntries(tcpSocket, domain.name, numberEntries)
+            getAllEntries(tcpSocket, domain, numberEntries)
 
-            confirmEntries(tcpSocket)
-
-            receiveEndOfTransfer(tcpSocket)
             print("End of zone transfer")
-            #finally:
-            #    print("Upsie")
-            #    tcpSocket.close()
+        except:
+            # If zone transfer fails, retry after SOARETRY
+            # seconds
+            time.sleep(domain.get_retry())
+            continue
+        finally:
+            tcpSocket.shutdown(socket.SHUT_WR)
+            tcpSocket.close()
 
-        time.sleep(10)
+        # Wait SOAREFRESH seconds before refreshing
+        # database
+        time.sleep(domain.get_refresh())

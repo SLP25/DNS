@@ -98,6 +98,10 @@ class SecondaryDomain(Domain):
         self.primaryServer = None
         self.aliases = None
         self.dnsEntries = None
+        self.expire = 0
+        self.retry = 0
+        self.refresh = 0
+        self.serial = 0
     
     def set_primary_server(self, primary_server:str):
         """
@@ -112,7 +116,19 @@ class SecondaryDomain(Domain):
             raise InvalidConfigFileException(f"Invalid ip address {primary_server}")
         
         self.primaryServer = primary_server
-        
+    
+    def get_expire(self):
+        return self.expire
+    
+    def get_retry(self):
+        return self.retry
+    
+    def get_refresh(self):
+        return self.refresh
+    
+    def get_serial(self):
+        return self.serial
+    
     def validate(self):
         """
         Determines whether the current instance has been fully parsed and can start answering queries
@@ -142,6 +158,14 @@ class SecondaryDomain(Domain):
         for e in self.dnsEntries:
             if e.type == EntryType.CNAME:
                 self.aliases[e.parameter] = e.value
+            elif e.type == EntryType.SOAREFRESH:
+                self.refresh = int(e.value)
+            elif e.type == EntryType.SOARETRY:
+                self.retry = int(e.value)
+            elif e.type == EntryType.SOAEXPIRE:
+                self.expire = int(e.value)
+            elif e.type == EntryType.SOASERIAL:
+                self.serial = int(e.value)
     
     #TODO: Thread safety
     def answer_query(self, query:QueryInfo):    #TODO: invalidate entries after SOAEXPIRE seconds

@@ -9,7 +9,7 @@ import re
 from common.query import QueryInfo
 from common.query import QueryResponse
 import common.utils as utils
-from common.dnsEntry import DNSEntry, ENTRY_TYPE, PARAMETER_CHAR
+from common.dnsEntry import DNSEntry, ENTRY_TYPE, PARAMETER_CHAR, EntryType
 from server.exceptions import InvalidConfigFileException, InvalidDatabaseException
 
 
@@ -31,6 +31,7 @@ class Database:
         self.macros = {}
         self.aliases = {}
         self.entries = []
+        self.serial = 0
         
         try:
             with open(path,'r') as file:
@@ -102,6 +103,9 @@ class Database:
         
         ans = DNSEntry.from_text(parameter,type,value,ttl,priority)
         self.entries.append(ans)
+        
+        if ans.type == EntryType.SOASERIAL:
+            self.serial = int(ans.value)
     
     def answer_query(self, query:QueryInfo):
         """

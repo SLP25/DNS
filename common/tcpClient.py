@@ -50,6 +50,9 @@ class TCPClient:
         
         if message is None:
             addedBuffer = self.client.recv(self.bufferSize)
+            if len(addedBuffer) == 0:
+                return addedBuffer
+            
             self.buffer = self.buffer + addedBuffer
             return self.read()
         

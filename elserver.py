@@ -191,17 +191,22 @@ class Server:
             ans = self.process_message(msg, ip, p)
             if ans:
                 self.server.send(ans, ip, p)
-                
+
     def run(self):
         procs = []
+        #Add the single SP zone transfer process to the list
         procs.append(Process(target=zoneTransferSP, args=[self.config, "127.0.0.1", port]))
-        procs.append(Process(target=zoneTransferSS, args=[self.config]))
-        
+        #TODO: Add locks
+        #Add one zone transfer process to the list for
+        #each domain the server is an SS for
+        for domain in self.config.get_secondary_domains():
+            procs.append(Process(target=zoneTransferSS, args=[self.config, domain]))
+
         for proc in procs:
             proc.start()
-        
+
         self.run_main()
-        
+
         #logger.log(LoggingEntryType.SP, '127.0.0.1', ['TODO: cenas aqui'])
     
 def extract_flag(flag):
@@ -219,7 +224,7 @@ def extract_flag(flag):
     index = sys.argv.index(flag)
     return sys.argv[index + 1]
 
-def main():        
+def main():
     '''
     The entry point for the server. Parses the program arguments
     and sets the global configuration
@@ -253,6 +258,6 @@ def main():
     server = Server(resolver, config_file)
     print(logger)
     server.run()
-    
+
 if __name__ == "__main__":
     main()
