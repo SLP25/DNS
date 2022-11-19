@@ -14,7 +14,10 @@ from common.query import QueryResponse
 from .exceptions import InvalidConfigFileException, InvalidTopServersException, NoConfigFileException
 from common.dnsEntry import DNSEntry, EntryType
 import common.utils as utils
-import common.ourLogging as logging
+
+from common.logger import LogCreate,LogMessage,LoggingEntryType
+from multiprocessing import Queue
+
 from .domain import Domain, PrimaryDomain, SecondaryDomain
 from collections import OrderedDict
 import re
@@ -53,10 +56,12 @@ class ServerData:
         topServers      -> List[str] (ip adresses)
     """
     
-    def __init__(self, filePath:str):
+    def __init__(self, filePath:str,logger:Queue):
         """
         Constructs an instance of ServerData from the given path to a server configuration file
         """
+        
+        self.logger=logger
         self.domains = OrderedDict()    #name:domain  #TODO: separar em primary e seconday?
         self.defaultServers = {}        #domain:value
         self.topServers = []            #ips
@@ -66,8 +71,8 @@ class ServerData:
                 for line in file.readlines():
                     self.__parseLine__(line.rstrip('\n'))
                     
-                if not logging.logger.is_valid():
-                    raise InvalidConfigFileException("No global log files specified")
+                #if not logging.logger.is_valid():
+                #    raise InvalidConfigFileException("No global log files specified")
                 
                 doms = self.domains
                 self.domains = OrderedDict()
@@ -210,9 +215,9 @@ class ServerData:
                     raise InvalidConfigFileException(f"invalid ST file {data}")
             elif lineType == ConfigType.LG:
                 if domain == 'all.':
-                    logging.logger.setupLogger(data, None, True)
+                    self.logger.put(LogCreate(data))
                 else:
-                    self.get_domain(domain, create=True).add_log_file(data)
-
+                    self.get_domain(domain, create=True).add_log_file(data,self.logger)
+                    
         except ValueError:
             raise InvalidConfigFileException(line + " has no valid type")
