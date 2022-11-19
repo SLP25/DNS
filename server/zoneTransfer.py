@@ -81,13 +81,14 @@ def zoneTransferSPClient(serverData, conn, address):
     try:
         clientConnected = TCPWrapper(conn, ZoneTransferPacket.split_messages, 
                                         maxSize, address)
-
+        lock = threading.Lock()
         data = clientConnected.read()
         while data != b'':
             print(address)
             packet = ZoneTransferPacket.from_str(data.decode())
             #print(str(packet))
-            response_packets = processPacket(serverData, packet, address[0])
+            with lock:
+                response_packets = processPacket(serverData, packet, address[0])
             for response_packet in response_packets:
                 print(str(response_packet))
                 clientConnected.write(str(response_packet).encode())
@@ -229,7 +230,7 @@ def receiveEndOfTransfer(tcpSocket):
     """
     tcpSocket.recv(maxSize)
 
-def zoneTransferSS(serverData, domain):
+def zoneTransferSS(serverData, domain_name):
     """
     Function implementing the zone transfer protocol from the point of view of an
     SS.
@@ -238,6 +239,7 @@ def zoneTransferSS(serverData, domain):
 
     serverData : ServerData -> The configuration of the server
     """
+    domain = serverData.get_domain(domain_name)
     while True:
         #logger.log
         # Create a TCP/IP socket

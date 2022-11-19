@@ -200,7 +200,7 @@ class Server:
         #Add one zone transfer process to the list for
         #each domain the server is an SS for
         for domain in self.config.get_secondary_domains():
-            procs.append(Process(target=zoneTransferSS, args=[self.config, domain]))
+            procs.append(Process(target=zoneTransferSS, args=[self.config, domain.name]))
 
         for proc in procs:
             proc.start()
