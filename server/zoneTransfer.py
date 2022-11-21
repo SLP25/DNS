@@ -33,7 +33,7 @@ Max zone transfer packet size in bytes
 maxSize = 1024
 
 #TODO: Validate request
-def processPacket(serverData, packet, ip):
+def processPacket(serverData, packet, ip, domain = None):
     """
     Given a packet an SP received from an SS, computes the packet(s) to send back
     in response. Auxiliary function for zoneTransferSP
@@ -44,8 +44,10 @@ def processPacket(serverData, packet, ip):
     packet : ZoneTransferPacket -> the packet received
     """
 
-    domain = serverData.get_domain(packet.get_domain(), True) if packet.get_domain() else None
+    if domain is None and packet.sequenceNumber == SequenceNumber(0):
+        domain = serverData.get_domain(packet.get_domain(), True) if packet.get_domain() else None
     entries = domain.database.entries if domain else None
+    
     
     #TODO: Only use domain in first request
     status = ZoneStatus.SUCCESS
@@ -59,27 +61,28 @@ def processPacket(serverData, packet, ip):
     if packet.sequenceNumber == SequenceNumber(0):
         if status == ZoneStatus.SUCCESS:
             result = domain.database.serial
-        return (domain, [ZoneTransferPacket(SequenceNumber(1), status, result)])
+        return (domain, [ZoneTransferPacket(SequenceNumber(1), status, domain, result)])
 
     if packet.sequenceNumber == SequenceNumber(2):
         if status == ZoneStatus.SUCCESS:
             result = len(entries)
-        return (domain, [ZoneTransferPacket(SequenceNumber(3), status, result)])
+        return (domain, [ZoneTransferPacket(SequenceNumber(3), status, domain, result)])
 
 
     if packet.sequenceNumber == SequenceNumber(4):
         if domain == None:
             return (domain, [ZoneTransferPacket(SequenceNumber(5), \
-                                                ZoneStatus.NO_SUCH_DOMAIN, "")])
+                                                ZoneStatus.NO_SUCH_DOMAIN, None, "")])
         if status == ZoneStatus.UNAUTHORIZED:
-            return (domain, [ZoneTransferPacket(SequenceNumber(5), status, "")])
+            return (domain, [ZoneTransferPacket(SequenceNumber(5), status, domain, "")])
         res = []
         for index, entry in enumerate(entries):
-            res.append(ZoneTransferPacket(SequenceNumber(5), ZoneStatus(0), (index, entry)))
+            res.append(ZoneTransferPacket(SequenceNumber(5), ZoneStatus(0), domain, \
+                                          (index, entry)))
         return (domain, res)
 
     return (domain, \
-            [ZoneTransferPacket(SequenceNumber(0), ZoneStatus.BAD_REQUEST, "")])
+            [ZoneTransferPacket(SequenceNumber(0), ZoneStatus.BAD_REQUEST, domain, "")])
 
 def zoneTransferSPClient(serverData, logger, conn, address):
     domain = None
@@ -93,7 +96,7 @@ def zoneTransferSPClient(serverData, logger, conn, address):
             packet = ZoneTransferPacket.from_str(data.decode())
 
             with lock:
-                (d, response_packets) = processPacket(serverData, packet, address[0])
+                (d, response_packets) = processPacket(serverData, packet, address[0], domain)
                 if domain == None:
                     domain = d
             for response_packet in response_packets:
@@ -150,7 +153,7 @@ def getServerVersionNumber(tcpSocket, domain):
 
     int : The version number of the database
     """
-    sentPacket = ZoneTransferPacket(SequenceNumber(0), ZoneStatus(0), domain)
+    sentPacket = ZoneTransferPacket(SequenceNumber(0), ZoneStatus(0), domain, domain)
     tcpSocket.write(str(sentPacket).encode())
     data = tcpSocket.read()
     receivedPacket = ZoneTransferPacket.from_str(data.decode())
@@ -170,7 +173,7 @@ def getDomainNumberEntries(tcpSocket, domain):
 
     int : the number of entries to expect for the domain
     """
-    sentPacket = ZoneTransferPacket(SequenceNumber(2), ZoneStatus(0), domain)
+    sentPacket = ZoneTransferPacket(SequenceNumber(2), ZoneStatus(0), domain, domain)
     tcpSocket.write(str(sentPacket).encode())
     data = tcpSocket.read()
     receivedPacket = ZoneTransferPacket.from_str(data.decode())
@@ -187,7 +190,7 @@ def acknowledgeNumberEntries(tcpSocket, domain, entries):
     domain : String  -> the name of the domain the number of entries refer to
     entries : int    -> the number of entries to expect
     """
-    sentPacket = ZoneTransferPacket(SequenceNumber(4), ZoneStatus(0), (entries, domain))
+    sentPacket = ZoneTransferPacket(SequenceNumber(4), ZoneStatus(0), domain, entries)
     tcpSocket.write(str(sentPacket).encode())
 
 def getAllEntries(tcpSocket, domain, entries):
