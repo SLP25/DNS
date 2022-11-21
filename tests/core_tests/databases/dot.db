@@ -3,6 +3,8 @@ TTL DEFAULT 600
 
 slp NS sdt.slp TTL
 ium NS sdt.ium TTL
+arpa NS sdt.arpa TTL
 
 sdt.slp A 10.3.3.2
 sdt.ium A 10.3.3.1
+sdt.arpa A 10.0.14.12
