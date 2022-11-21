@@ -155,7 +155,6 @@ class ZoneTransferPacket:
         elif sequenceNumber.value in [1,3]:
             data = int(search.group(4))
         elif sequenceNumber.value in [5]:
-            print(search.group(4))
             data_search = re.search("\\((([0-9]{1,5}|65535),(.*))\\)", search.group(4))
             if data_search is None:
                 raise InvalidZoneTransferPacketException("No order for dns entry given")
@@ -180,7 +179,6 @@ class ZoneTransferPacket:
         - a tuple in the format "(<order>,<dns_entry>)" with order being
         an integer from 0-65535 and dns_entry a DNSEntry in string form
         '''
-            
         return "({sequenceNumber},{status},{data})\n".format(
             sequenceNumber = self.sequenceNumber.value,
             status = self.status.value, data = str(self.data) if self.sequenceNumber.value not in [4,5] else f"({str(self.data[0])},{str(self.data[1])})")
