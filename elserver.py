@@ -202,12 +202,10 @@ class Server:
     def run(self):
         procs = []
         #Add the single SP zone transfer process to the list
-        procs.append(Process(target=zoneTransferSP, args=[self.config, "127.0.0.1", port]))
-        #TODO: Add locks
-        #Add one zone transfer process to the list for
-        #each domain the server is an SS for
+        procs.append(Process(target=zoneTransferSP, args=[self.config, logger, "127.0.0.1", port]))
+
         for domain in self.config.get_secondary_domains():
-            procs.append(Process(target=zoneTransferSS, args=[self.config, domain.name]))
+            procs.append(Process(target=zoneTransferSS, args=[self.config, logger, domain.name]))
 
         for proc in procs:
             proc.start()
@@ -265,7 +263,7 @@ def main():
     #Config
     config_file = extract_flag("-c")
     server = Server(resolver, config_file)
-    print(logger)
+
     server.run()
 
 if __name__ == "__main__":

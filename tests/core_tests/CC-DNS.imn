@@ -1352,6 +1352,7 @@ node n38 {
     interface-peer {e0 n4}
     interface-peer {e1 n39}
     interface-peer {e2 n40}
+    interface-peer {e3 n41}
 }
 
 node n39 {
@@ -1385,6 +1386,23 @@ node n40 {
     canvas c1
     iconcoords {1405.0 679.0}
     labelcoords {1405.0 711.0}
+    interface-peer {eth0 n38}
+}
+
+node n41 {
+    type router
+    model host
+    network-config {
+	hostname sdt-arpa
+	!
+	interface eth0
+	 ip address 10.0.14.12/24
+	 ipv6 address 2001:14::12/64
+	!
+    }
+    canvas c1
+    iconcoords {1254.0 736.0}
+    labelcoords {1254.0 768.0}
     interface-peer {eth0 n38}
 }
 
@@ -1633,6 +1651,11 @@ link l44 {
 
 link l45 {
     nodes {n38 n40}
+    bandwidth 0
+}
+
+link l46 {
+    nodes {n38 n41}
     bandwidth 0
 }
 

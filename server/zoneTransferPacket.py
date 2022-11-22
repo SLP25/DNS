@@ -75,7 +75,7 @@ class ZoneTransferPacket:
     For more information regarding the zone transfer protocol, refer
     to the documentation of zoneTransfer.py
     '''
-    def __init__(self, sequenceNumber, status, data):
+    def __init__(self, sequenceNumber, status, domain, data):
         '''
         Initializes a ZoneTransfer packet.
         
@@ -90,13 +90,11 @@ class ZoneTransferPacket:
         self.sequenceNumber = sequenceNumber
         self.status = status
         self.data = data
+        self.domain = domain
         pass
     
     def get_domain(self):
-        if self.sequenceNumber.value in [0,1,2]:
-            return self.data
-        elif self.sequenceNumber.value in [4]:
-            return self.data[1]
+        return self.domain
 
     @staticmethod
     def split_messages(buffer):
@@ -139,7 +137,6 @@ class ZoneTransferPacket:
         an integer from 0-65535 and dns_entry a DNSEntry in string form
         '''
         search = re.search("(\(([01234567])\,([012])\,(.*)\))", string)
-
         if search is None:
             raise InvalidZoneTransferPacketException("String " + string + " does not follow format")
 
@@ -150,22 +147,24 @@ class ZoneTransferPacket:
 
         data = None
         #TODO: Validate input
-        if sequenceNumber.value in [0,2]:
+        domain = None
+        if sequenceNumber.value in [0]:
             data = search.group(4)
+            domain = data
         elif sequenceNumber.value in [1,3]:
             data = int(search.group(4))
         elif sequenceNumber.value in [5]:
-            print(search.group(4))
             data_search = re.search("\\((([0-9]{1,5}|65535),(.*))\\)", search.group(4))
             if data_search is None:
                 raise InvalidZoneTransferPacketException("No order for dns entry given")
             data = (int(data_search.group(2)), DNSEntry.from_str(data_search.group(3)))
         elif sequenceNumber.value in [4]:
-            data_search = re.search("\\((([0-9]{1,5}|65535),(.*))\\)", search.group(4))
-            if data_search is None:
-                raise InvalidZoneTransferPacketException("Invalid packet")
-            data = (int(data_search.group(2)), data_search.group(3))
-        return ZoneTransferPacket(sequenceNumber, status, data)
+            #data_search = re.search("\\((([0-9]{1,5}|65535),(.*))\\)", search.group(4))
+            #if data_search is None:
+            #    raise InvalidZoneTransferPacketException("Invalid packet")
+            #data = (int(data_search.group(2)), data_search.group(3))
+            data = int(search.group(4))
+        return ZoneTransferPacket(sequenceNumber, status, domain, data)
 
     def __str__(self):
         '''
@@ -180,7 +179,6 @@ class ZoneTransferPacket:
         - a tuple in the format "(<order>,<dns_entry>)" with order being
         an integer from 0-65535 and dns_entry a DNSEntry in string form
         '''
-            
         return "({sequenceNumber},{status},{data})\n".format(
             sequenceNumber = self.sequenceNumber.value,
-            status = self.status.value, data = str(self.data) if self.sequenceNumber.value not in [4,5] else f"({str(self.data[0])},{str(self.data[1])})")
+            status = self.status.value, data = str(self.data) if self.sequenceNumber.value != 5 else f"({str(self.data[0])},{str(self.data[1])})")

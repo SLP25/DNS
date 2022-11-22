@@ -20,6 +20,7 @@ import time
 import socket
 from common.tcpWrapper import TCPWrapper
 from common.utils import decompose_address
+from common.logger import LogMessage, LoggingEntryType
 
 #TODO: Handle errors (wrong status etc)
 #TODO: Proper timeout
@@ -32,7 +33,7 @@ Max zone transfer packet size in bytes
 maxSize = 1024
 
 #TODO: Validate request
-def processPacket(serverData, packet, ip):
+def processPacket(serverData, packet, ip, domain = None):
     """
     Given a packet an SP received from an SS, computes the packet(s) to send back
     in response. Auxiliary function for zoneTransferSP
@@ -42,13 +43,16 @@ def processPacket(serverData, packet, ip):
     serverData : ServerData -> the configuration of the server
     packet : ZoneTransferPacket -> the packet received
     """
-    print(packet.data)
-    domain = serverData.get_domain(packet.get_domain(), True) if packet.get_domain() else None
+
+    if domain is None and packet.sequenceNumber == SequenceNumber(0):
+        domain = serverData.get_domain(packet.get_domain(), True) if packet.get_domain() else None
     entries = domain.database.entries if domain else None
+    
+    
     #TODO: Only use domain in first request
     status = ZoneStatus.SUCCESS
     result = ""
-    print(domain)
+
     if domain != None and not domain.is_authorized(ip):
         status = ZoneStatus.UNAUTHORIZED
     elif domain == None and packet.sequenceNumber.value in [0,2,4]:
@@ -57,56 +61,66 @@ def processPacket(serverData, packet, ip):
     if packet.sequenceNumber == SequenceNumber(0):
         if status == ZoneStatus.SUCCESS:
             result = domain.database.serial
-        return [ZoneTransferPacket(SequenceNumber(1), status, result)]
+        return (domain, [ZoneTransferPacket(SequenceNumber(1), status, domain, result)])
 
     if packet.sequenceNumber == SequenceNumber(2):
         if status == ZoneStatus.SUCCESS:
             result = len(entries)
-        return [ZoneTransferPacket(SequenceNumber(3), status, result)]
+        return (domain, [ZoneTransferPacket(SequenceNumber(3), status, domain, result)])
 
 
     if packet.sequenceNumber == SequenceNumber(4):
         if domain == None:
-            return [ZoneTransferPacket(SequenceNumber(5), ZoneStatus.NO_SUCH_DOMAIN, "")]
+            return (domain, [ZoneTransferPacket(SequenceNumber(5), \
+                                                ZoneStatus.NO_SUCH_DOMAIN, None, "")])
         if status == ZoneStatus.UNAUTHORIZED:
-            return [ZoneTransferPacket(SequenceNumber(5), status, "")]
+            return (domain, [ZoneTransferPacket(SequenceNumber(5), status, domain, "")])
         res = []
         for index, entry in enumerate(entries):
-            res.append(ZoneTransferPacket(SequenceNumber(5), ZoneStatus(0), (index, entry)))
-        return res
+            res.append(ZoneTransferPacket(SequenceNumber(5), ZoneStatus(0), domain, \
+                                          (index, entry)))
+        return (domain, res)
 
-    return [ZoneTransferPacket(SequenceNumber(0), ZoneStatus.BAD_REQUEST, "")]
+    return (domain, \
+            [ZoneTransferPacket(SequenceNumber(0), ZoneStatus.BAD_REQUEST, domain, "")])
 
-def zoneTransferSPClient(serverData, conn, address):
+def zoneTransferSPClient(serverData, logger, conn, address):
+    domain = None
     try:
-        clientConnected = TCPWrapper(conn, ZoneTransferPacket.split_messages, 
+        clientConnected = TCPWrapper(conn, ZoneTransferPacket.split_messages, \
                                         maxSize, address)
         lock = threading.Lock()
         data = clientConnected.read()
+
         while data != b'':
-            print(address)
             packet = ZoneTransferPacket.from_str(data.decode())
-            #print(str(packet))
+
             with lock:
-                response_packets = processPacket(serverData, packet, address[0])
+                (d, response_packets) = processPacket(serverData, packet, address[0], domain)
+                if domain == None:
+                    domain = d
             for response_packet in response_packets:
-                print(str(response_packet))
                 clientConnected.write(str(response_packet).encode())
 
             data = clientConnected.read()
+        logger.put(LogMessage(LoggingEntryType.ZT, f"{address[0]}:{address[1]}", \
+            ["SP"], domain.name))
+    except:
+        logger.put(LogMessage(LoggingEntryType.EZ, f"{address[0]}:{address[1]}", \
+            ["SP"], domain))
     finally:
         clientConnected.shutdown(socket.SHUT_WR)
         clientConnected.close()
 
-def zoneTransferSP(serverData, localIP, port):
+def zoneTransferSP(serverData, logger, localIP, port):
     """
     Function implementing the zone transfer protocol from the point of view of an
     SP.
 
     Arguments:
-    
+
     serverData : ServerData -> the configuration of the server
-    localIP      : String       -> The IP where the TCP socket will be binded
+    localIP      : String       -> The IP where the TCP socket will be bound
     port         : int          -> The port to listen on
     """
     #Setup socket
@@ -118,7 +132,8 @@ def zoneTransferSP(serverData, localIP, port):
         #Run forever
         while True:
             (conn, address) = tcpSocket.accept()
-            t = threading.Thread(target=zoneTransferSPClient, args=(serverData, conn, address))
+            t = threading.Thread(target=zoneTransferSPClient, \
+                                 args=(serverData, logger, conn, address))
             t.start()
     finally:
         tcpSocket.close()
@@ -130,7 +145,7 @@ def getServerVersionNumber(tcpSocket, domain):
     Auxiliary function to zoneTransferSS
 
     Arguments:
-    
+
     tcpSocket       -> the socket used to communicate with the SP
     domain : String -> the name of the domain to query about
 
@@ -138,7 +153,7 @@ def getServerVersionNumber(tcpSocket, domain):
 
     int : The version number of the database
     """
-    sentPacket = ZoneTransferPacket(SequenceNumber(0), ZoneStatus(0), domain)
+    sentPacket = ZoneTransferPacket(SequenceNumber(0), ZoneStatus(0), domain, domain)
     tcpSocket.write(str(sentPacket).encode())
     data = tcpSocket.read()
     receivedPacket = ZoneTransferPacket.from_str(data.decode())
@@ -158,7 +173,7 @@ def getDomainNumberEntries(tcpSocket, domain):
 
     int : the number of entries to expect for the domain
     """
-    sentPacket = ZoneTransferPacket(SequenceNumber(2), ZoneStatus(0), domain)
+    sentPacket = ZoneTransferPacket(SequenceNumber(2), ZoneStatus(0), domain, domain)
     tcpSocket.write(str(sentPacket).encode())
     data = tcpSocket.read()
     receivedPacket = ZoneTransferPacket.from_str(data.decode())
@@ -175,7 +190,7 @@ def acknowledgeNumberEntries(tcpSocket, domain, entries):
     domain : String  -> the name of the domain the number of entries refer to
     entries : int    -> the number of entries to expect
     """
-    sentPacket = ZoneTransferPacket(SequenceNumber(4), ZoneStatus(0), (entries, domain))
+    sentPacket = ZoneTransferPacket(SequenceNumber(4), ZoneStatus(0), domain, entries)
     tcpSocket.write(str(sentPacket).encode())
 
 def getAllEntries(tcpSocket, domain, entries):
@@ -200,11 +215,6 @@ def getAllEntries(tcpSocket, domain, entries):
         newEntries.append(entry)
 
     domain.set_entries(newEntries)
-    
-    print("====================================")
-    for entry in newEntries:
-        print(entry)
-    print("====================================")
 
 
 def confirmEntries(tcpSocket):
@@ -230,7 +240,7 @@ def receiveEndOfTransfer(tcpSocket):
     """
     tcpSocket.recv(maxSize)
 
-def zoneTransferSS(serverData, domain_name):
+def zoneTransferSS(serverData, logger, domain_name):
     """
     Function implementing the zone transfer protocol from the point of view of an
     SS.
@@ -246,12 +256,9 @@ def zoneTransferSS(serverData, domain_name):
         tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp.connect(decompose_address(domain.primaryServer))
         tcpSocket = TCPWrapper(tcp, ZoneTransferPacket.split_messages, maxSize)
-        print("INICIO")
 
         try:
             versionNumber = getServerVersionNumber(tcpSocket, domain.name)
-            print(versionNumber)
-            print(domain.get_serial())
 
             #There is no new version of the database available
             if versionNumber <= domain.get_serial():
@@ -260,11 +267,14 @@ def zoneTransferSS(serverData, domain_name):
 
             numberEntries = getDomainNumberEntries(tcpSocket, domain.name)
             acknowledgeNumberEntries(tcpSocket, domain.name, numberEntries)
-            print("Entries")
             getAllEntries(tcpSocket, domain, numberEntries)
 
-            print("End of zone transfer")
+            #TODO: Add bytes transferred and time elapsed
+            logger.put(LogMessage(LoggingEntryType.ZT, domain.primaryServer, \
+                ["SS"], domain_name))
         except:
+            logger.put(LogMessage(LoggingEntryType.EZ, domain.primaryServer, \
+                ["SS"], domain_name))
             # If zone transfer fails, retry after SOARETRY
             # seconds
             time.sleep(domain.get_retry())
