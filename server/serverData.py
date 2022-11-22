@@ -62,24 +62,24 @@ class ServerData:
         """
         
         self.logger=logger
-        self.domains = OrderedDict()    #name:domain  #TODO: separar em primary e seconday?
-        self.defaultServers = {}        #domain:value
-        self.topServers = []            #ips
+        self.domains = OrderedDict()        #name:domain  #TODO: separar em primary e seconday?
+        self.defaultServers = OrderedDict() #domain:value
+        self.topServers = []                #ips
+        self.loggers = []                   #file paths
 
         try:
             with open(filePath, "r") as file:
                 for line in file.readlines():
                     self.__parseLine__(line.rstrip('\n'))
                     
-                #if not logging.logger.is_valid():
-                #    raise InvalidConfigFileException("No global log files specified")
-                
-                doms = self.domains
-                self.domains = OrderedDict()
+                if self.loggers == []:
+                    raise InvalidConfigFileException("No global log files specified")
                 
                 #reorder domains to the correct order (from higher to lower in the hierarchy)
-                for d in sorted(doms.values(), key=lambda d: len(utils.split_domain(d.name))):
-                    self.domains[d.name] = d
+                self.domains = utils.order_dict(self.domains, lambda d: len(utils.split_domain(d.name)))
+                self.defaultServers = utils.order_dict(self.defaultServers, lambda d: len(utils.split_domain(d.name)))
+                
+                for d in self.domains.values():
                     d.validate()
 
         except FileNotFoundError:

@@ -184,21 +184,18 @@ class DNSEntry:
         return DNSEntry(parameter, _type, value, _ttl, _priority)
             
     @staticmethod
-    def from_bytes(data):
+    def from_bytes(data, pos = 0):
         """
         Constructs a DNSEntry from an array of bytes
         If the parsing fails, an InvalidDNSEntryException is thrown
+        Returns a pair containing the dnsEntry and the number of consumed bytes
         """
-        pos = 0
-        
-        parameter = utils.bytes_to_string(data, pos)
-        pos += len(parameter) + 1
+        parameter, pos = utils.bytes_to_string(data, pos)
         
         type = utils.bytes_to_int(data, 1, pos)
         pos += 1
         
-        value = utils.bytes_to_string(data, pos)
-        pos += len(value) + 1
+        value, pos = utils.bytes_to_string(data, pos)
         
         ttl = utils.bytes_to_int(data, 4, pos)
         pos += 4
@@ -206,16 +203,20 @@ class DNSEntry:
         priority = utils.bytes_to_int(data, 1, pos)
         pos += 1
         
-        return DNSEntry(parameter, type, value, ttl, priority)
+        return (DNSEntry(parameter, type, value, ttl, priority), pos)
 
-    def to_bytes__(self):
+    def to_bytes(self):
         """
         Converts the current instance of DNSEntry to an array of bytes
         """
-        #TODO: pass type as 4 bits instead of 1 byte? or padding
-        return utils.string_to_bytes(self.parameter) + utils.int_to_bytes(self.type.value, 1) + utils.string_to_bytes(self.value) + utils.int_to_bytes(self.ttl.value, 4) + utils.int_to_bytes(self.priority.value, 1)
+        ans = utils.string_to_bytes(self.parameter) + utils.int_to_bytes(self.type.value, 1) + utils.string_to_bytes(self.value) + utils.int_to_bytes(self.ttl.value, 4)
+        
+        if self.type.supports_priority():
+            ans += utils.int_to_bytes(self.priority.value, 1)
+        
+        return ans
 
-    def __str__(self):  #TODO: tirar priority se o type nao suporta?
+    def __str__(self):
         """
         Converts the current instance of DNSEntry to its string representation
         """

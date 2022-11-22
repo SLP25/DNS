@@ -7,6 +7,8 @@ Last Modification: Adding documentation
 Date of Modification: 14/11/2022 10:20
 """
 
+from collections import OrderedDict
+
 """
 The default port to use if no port is specified in the ip address of a dns server
 """
@@ -83,6 +85,17 @@ def flat_map(f, xs):
     """
     return (y for ys in xs for y in f(ys))
 
+def order_dict(dict, key):
+    """
+    Given a dictionary and a function key that applies to the values of the
+    dictionary, returns an OrderedDict sorted by that function (from lowest to greatest)
+    """
+    ans = OrderedDict()
+    
+    for k,v in sorted(dict.items(), key=lambda k,v: key(v)):
+        ans[k] = v
+
+    return ans
 
 def decompose_address(address:str):
     """
@@ -192,5 +205,8 @@ def bytes_to_string(bytes, start:int = 0):
     Extracts a string from a null-terminated array of bytes
     Starts the parsing at the specified position
     All bytes after the null terminated are ignored
+    Returns a pair containing the parsed string and the number of
+    consumed bytes (including the null terminator) plus the start position
     """
-    bytes[start:].split('\x00', 1)[0].decode()
+    aux = bytes[start:].split('\x00', 1)
+    return (aux[0].decode(), len(aux[0]) + 1)

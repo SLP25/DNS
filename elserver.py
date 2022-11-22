@@ -140,7 +140,7 @@ class Server:
         while True:
             ans = self.query_any(next_dns, query, recursive)
             if not ans:     #can't contact anyone :(
-                return prev_ans if prev_ans else QueryResponse() #TODO: nao responder? resposta vazia? ou resposta anterior?
+                return prev_ans if prev_ans else None
 
             self.cache.add_response(ans)
             if ans.positive() or not recursive:     #success!
