@@ -217,6 +217,7 @@ class ServerData:
             elif lineType == ConfigType.LG:
                 if domain == 'all.':
                     self.logger.put(LogCreate(data))
+                    self.loggers.append(data)
                 else:
                     self.get_domain(domain, create=True).add_log_file(data,self.logger)
                     
