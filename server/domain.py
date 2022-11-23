@@ -49,7 +49,7 @@ class PrimaryDomain(Domain):
         self.database = None
         
     def is_authorized(self, ip):
-        return ip in self.authorizedSS
+        return ip in self.authorizedSS  #TODO: authorizedSSs may not contain port
         
     def set_database(self, path:str):    
         """

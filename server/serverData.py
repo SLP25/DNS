@@ -63,7 +63,7 @@ class ServerData:
         
         self.logger=logger
         self.domains = OrderedDict()        #name:domain  #TODO: separar em primary e seconday?
-        self.defaultServers = OrderedDict() #domain:value
+        self.defaultServers = OrderedDict() #domain name:ip[:port]
         self.topServers = []                #ips
         self.loggers = []                   #file paths
 
@@ -98,7 +98,7 @@ class ServerData:
         self.get_domain(domain, False).set_entries(new_entries)
         
         
-    def get_first_servers(self, domain_name:str):   #TODO: ordered from least to most specific
+    def get_first_servers(self, domain_name:str):
         """
         Determines the first servers to ask if a query can't be answered locally. This is
         the top servers if no default domain is set, or the default server if it is
@@ -107,9 +107,11 @@ class ServerData:
         Arguments:
             domain_name -> A valid domain name (matches DOMAIN or FULL_DOMAIN). Case and termination insensitive
         """
-        d = utils.best_match(domain_name, self.defaultServers)
-        if d:
-            return list(filter(lambda x: x != "127.0.0.1", self.defaultServers[d]))
+        matches = filter(lambda d: d != "127.0.0.1" and utils.is_subdomain(domain_name, d.name), self.defaultServers)
+        ans = next(matches, None)
+
+        if ans:
+            return [ans]
         else:
             return self.topServers
         
@@ -119,7 +121,6 @@ class ServerData:
         Returns a QueryResponse
         If no answer could be found, an empty QueryResponse is returned
         """
-        
         matches = filter(lambda d: utils.is_subdomain(query.name, d.name), self.domains.values())
         
         for d in matches:
