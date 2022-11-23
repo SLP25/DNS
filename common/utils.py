@@ -85,14 +85,16 @@ def flat_map(f, xs):
     """
     return (y for ys in xs for y in f(ys))
 
+
+
 def order_dict(dict, key):
     """
-    Given a dictionary and a function key that applies to the values of the
+    Given a dictionary and a function key that applies to the keys of the
     dictionary, returns an OrderedDict sorted by that function (from lowest to greatest)
     """
     ans = OrderedDict()
     
-    for k,v in sorted(dict.items(), key=lambda k,v: key(v)):
+    for k,v in sorted(dict.items(), key=lambda kv: key(kv[0])):
         ans[k] = v
 
     return ans

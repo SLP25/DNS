@@ -76,8 +76,8 @@ class ServerData:
                     raise InvalidConfigFileException("No global log files specified")
                 
                 #reorder domains to the correct order (from higher to lower in the hierarchy)
-                self.domains = utils.order_dict(self.domains, lambda d: len(utils.split_domain(d.name)))
-                self.defaultServers = utils.order_dict(self.defaultServers, lambda d: len(utils.split_domain(d.name)))
+                self.domains = utils.order_dict(self.domains, lambda d: len(utils.split_domain(d)))
+                self.defaultServers = utils.order_dict(self.defaultServers, lambda d: len(utils.split_domain(d)))
                 
                 for d in self.domains.values():
                     d.validate()
@@ -114,6 +114,13 @@ class ServerData:
             return [ans]
         else:
             return self.topServers
+        
+    def is_default(self, d:str):
+        for k in self.defaultServers:
+            if utils.is_subdomain(d, k):
+                return True
+
+        return False
         
     def answer_query(self, query:QueryInfo):
         """
