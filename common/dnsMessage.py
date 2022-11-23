@@ -80,9 +80,15 @@ class DNSMessage:
         """
         return not hasattr(self, 'response')
     
-    #if self is a query, indicates whether
-    #if self is a response, indicates whether the server supports recursive mode
+
     def __flag_recursive__(self):
+        """if query    : return the state of the recursive flag
+           if response : return if supports recursive mode
+        
+
+        Returns:
+            Bool: if is query then return if the recursive flag is set.if is response will return if it supports recursive mode
+        """
         if self.is_query():
             return self.recursive
         else:
@@ -91,12 +97,23 @@ class DNSMessage:
     #if self is a query, returns False
     #if self is a response, indicates whether the response is authoritative
     def __flag_authoritative__(self):
+        """if query    : return False
+           if response : return if the response is authoritative
+
+        Returns:
+            Bool: if query will return false. If response will indicate if the response is authorative
+        """
         if self.is_query():
             return False
         else:
             return self.response.authoritative
 
     def __flags_as_string__(self):
+        """Return the flags of the message as a string Representation
+
+        Returns:
+            String: the string representation of the message flags
+        """
         return '+'.join(f"{'Q' if self.is_query() else ''}{'R' if self.__flag_recursive__() else ''}{'A' if self.__flag_authoritative__() else ''}")
 
 
@@ -225,6 +242,17 @@ class DNSMessage:
 
 
 def __read_flags__(str):
+    """returns a tuple of the state of each flags in the order: Query,Recursive,Authoritative
+
+    Args:
+        str (String): the flags to read 
+
+    Raises:
+        InvalidDNSMessageException: in case there are repeted flags in the input
+
+    Returns:
+        Tuple: the state of each flags in the order: Query,Recursive,Authoritative
+    """
     for f in "QRA":
         if str.count(f) > 1:
             raise InvalidDNSMessageException(f"Multiple occurences of flag {f} in flags: {str}")
@@ -232,6 +260,18 @@ def __read_flags__(str):
     return ('Q' in str, 'R' in str, 'A' in str)
 
 def __read_entries__(str, expected:int):
+    """parse a given number of entries from a string
+
+    Args:
+        str (String): the string containing the entries to be parsed
+        expected (int): the number of entries expected to be found
+
+    Raises:
+        InvalidDNSMessageException: if the format of one of the entries isn't correct
+
+    Returns:
+        Tuple: list of all entries found and the rest of the string that wasn't read
+    """
     ans = []
     while expected > 0:
         expected -= 1
@@ -246,6 +286,16 @@ def __read_entries__(str, expected:int):
     return (ans, str)
 
 def __parse_entries__(data, expected:int, pos:int = 0):
+    """_summary_
+
+    Args:
+        data (_type_): _description_
+        expected (int): _description_
+        pos (int, optional): _description_. Defaults to 0.
+
+    Returns:
+        _type_: _description_
+    """
     ans = []
     
     for i in range(0, expected):

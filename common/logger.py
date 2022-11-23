@@ -8,6 +8,8 @@ from multiprocessing import Queue,Process
 
 
 class LoggingEntryType(Enum):
+    """A enum representing each of the logging types possible
+    """
     QR=0#data = PDU DATA
     QE=1#data = PDU DATA
     RP=2#data = PDU DATA
@@ -23,19 +25,44 @@ class LoggingEntryType(Enum):
 
 
 class LogMessage:
+    """
+       The class representing a logging message 
+    """
     def __init__(self,etype:LoggingEntryType,ip:str,data:list,domain:str=None):
+        """method to create a log message with the given data
+
+        Args:
+            etype (LoggingEntryType): the type of the logging message
+            ip (str): the ip of the communication being processed when the logging occured
+            data (list): the data to be added to the messages
+            domain (str, optional): the domain to log to (ALL if None). Defaults to None.
+        """
         self.etype=etype
         self.ip=ip
         self.data=data
         self.domain=domain
     
     def __stardizeMessage__(self):
+        """Converts  a logMessage into a string
+
+        Returns:
+            String: the string representation of a log Message
+        """
         now=datetime.datetime.now()
         timestamp=now.strftime("%d:%m:%Y.%H:%M:%S:")+now.strftime("%f")[:3]#19:10:2022.11:20:50:020
         return ' '.join([timestamp,str(self.etype.name),self.ip]+[str(x) for x in self.data])
 
 class LogCreate:
+    """
+       The class representing adding a new file handler to a domain 
+    """
     def __init__(self,filename,domain=None):
+        """method to create a LogCreate
+
+        Args:
+            filename (String): the path to the file where to store the logging message from the domain
+            domain (String, optional): the domain to map to the given file (All if None). Defaults to None.
+        """
         self.filename=filename
         self.domain=domain
 
