@@ -18,7 +18,10 @@ port = int(match.group('port')) if match.group('port') else utils.DEFAULT_PORT
 query = QueryInfo(match.group('d'), EntryType[match.group('t')])
 msg = DNSMessage.from_query(query, match.group('r') != None)
 
-server = UDP(timeout=5)  #TODO: timeout?
-server.send(str(msg).encode(), ip, port)    #TODO: normal mode (send as binary)
-message, _, _ = server.receive()
-print(message.decode()) #TODO: user-friendly mode (Exemplo 6 do enunciado)
+try:
+    server = UDP(timeout=5)  #TODO: timeout?
+    server.send(str(msg).encode(), ip, port)    #TODO: normal mode (send as binary)
+    message, _, _ = server.receive()
+    print(message.decode()) #TODO: user-friendly mode (Exemplo 6 do enunciado)
+except:
+    print("Query failed")
