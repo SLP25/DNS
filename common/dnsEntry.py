@@ -139,6 +139,17 @@ class DNSEntry:
       
     @staticmethod
     def from_str(line: str):
+        """ creates a dnsEntry from the string representation validating if the string is valid
+
+        Args:
+            line (str): the string representation of a dns entry
+
+        Raises:
+            ValueError: if the string doesn't match a dns Entry message
+
+        Returns:
+            _type_: a new DNS entry with the data inside
+        """
         match = re.search(
             f'^\s*(?P<p>{PARAMETER_CHAR}+)\s+(?P<t>{ENTRY_TYPE})\s+(?P<v>[^\s]+)\s+(?P<ttl>\d+)(\s+(?P<pr>\d+))?\s*$',
             line)

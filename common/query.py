@@ -20,6 +20,11 @@ class QueryInfo:
         self.type = type
         
     def __str__(self):
+        """turn the query info into its string representation
+
+        Returns:
+            String: the string representation of the object
+        """
         return f'{self.name},{self.type.name}'
 
 class QueryResponse:
@@ -71,6 +76,14 @@ class QueryResponse:
     
     
 def __get_relevant_domains__(entries):
+    """gets the values of SOASP,NS and MX entries
+
+    Args:
+        entries (list): a list of entries
+
+    Returns:
+        list: a list of the values of the entries (with a . in the end if MX)
+    """
     ans = []
     
     for e in entries:
