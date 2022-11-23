@@ -52,6 +52,7 @@ def processPacket(serverData, packet, ip, domain = None):
     #TODO: Only use domain in first request
     status = ZoneStatus.SUCCESS
     result = ""
+    utils.get_local_ip()(ip)
     if domain != None and not domain.is_authorized(ip):
         status = ZoneStatus.UNAUTHORIZED
     elif domain == None and packet.sequenceNumber.value in [0,2,4]:
@@ -250,11 +251,13 @@ def zoneTransferSS(serverData, logger, domain_name):
     """
     domain = serverData.get_domain(domain_name)
     while True:
-        try:
-            tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            tcp.connect(decompose_address(domain.primaryServer))
-            tcpSocket = TCPWrapper(tcp, ZoneTransferPacket.split_messages, maxSize)
+        #logger.log
+        # Create a TCP/IP socket
+        tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tcp.connect(decompose_address(domain.primaryServer))
+        tcpSocket = TCPWrapper(tcp, ZoneTransferPacket.split_messages, maxSize)
 
+        try:
             versionNumber = getServerVersionNumber(tcpSocket, domain.name)
 
             #There is no new version of the database available
@@ -269,13 +272,13 @@ def zoneTransferSS(serverData, logger, domain_name):
             #TODO: Add bytes transferred and time elapsed
             logger.put(LogMessage(LoggingEntryType.ZT, domain.primaryServer, \
                 ["SS"], domain_name))
-        #except:
-        #    logger.put(LogMessage(LoggingEntryType.EZ, domain.primaryServer, \
-        #        ["SS"], domain_name))
-        #    # If zone transfer fails, retry after SOARETRY
-        #    # seconds
-        #    time.sleep(domain.get_retry())
-        #    continue
+        except:
+            logger.put(LogMessage(LoggingEntryType.EZ, domain.primaryServer, \
+                ["SS"], domain_name))
+            # If zone transfer fails, retry after SOARETRY
+            # seconds
+            time.sleep(domain.get_retry())
+            continue
         finally:
             tcpSocket.shutdown(socket.SHUT_WR)
             tcpSocket.close()

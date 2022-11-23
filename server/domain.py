@@ -101,10 +101,10 @@ class SecondaryDomain(Domain):
         self.primaryServer = None
         self.aliases = None
         self.dnsEntries = None
-        self.expire = 0
-        self.retry = 0
-        self.refresh = 0
-        self.serial = 0
+        self.expire = 60
+        self.retry = 60
+        self.refresh = 60
+        self.serial = 60
     
     def set_primary_server(self, primary_server:str):
         """
@@ -177,9 +177,9 @@ class SecondaryDomain(Domain):
         Returns a QueryResponse
         """
         hostname = self.__replace_aliases__(query.name)
-        return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.entries, True)
+        return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.dnsEntries, True)
     
     def __replace_aliases__(self, domain:str):
-        for k,v in self.macros.items():
+        for k,v in self.aliases.items():
             domain = domain.replace(k, v)
         return domain

@@ -107,7 +107,7 @@ class ServerData:
         Arguments:
             domain_name -> A valid domain name (matches DOMAIN or FULL_DOMAIN). Case and termination insensitive
         """
-        matches = filter(lambda d: d != "127.0.0.1" and utils.is_subdomain(domain_name, d.name), self.defaultServers)
+        matches = filter(lambda d: d != utils.get_local_ip() and utils.is_subdomain(domain_name, d.name), self.defaultServers)
         ans = next(matches, None)
 
         if ans:

@@ -8,6 +8,7 @@ Date of Modification: 14/11/2022 10:20
 """
 
 from collections import OrderedDict
+import socket
 
 """
 The default port to use if no port is specified in the ip address of a dns server
@@ -212,3 +213,10 @@ def bytes_to_string(bytes, start:int = 0):
     """
     aux = bytes[start:].split('\x00', 1)
     return (aux[0].decode(), len(aux[0]) + 1)
+
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    ans = s.getsockname()[0]
+    s.close()
+    return ans

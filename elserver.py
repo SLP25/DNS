@@ -194,7 +194,7 @@ class Server:
         Main server loop
         Receives DNS queries, and calls the processing function
         '''
-        logger.put(LogMessage(LoggingEntryType.ST, '127.0.0.1', ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', debug]))
+        logger.put(LogMessage(LoggingEntryType.ST, utils.get_local_ip(), ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', debug]))
         self.server = UDP(localPort=port,binding = True)
 
         while(True):
@@ -206,7 +206,7 @@ class Server:
     def run(self):
         procs = []
         #Add the single SP zone transfer process to the list
-        procs.append(Process(target=zoneTransferSP, args=[self.config, logger, "127.0.0.1", port]))
+        procs.append(Process(target=zoneTransferSP, args=[self.config, logger, utils.get_local_ip(), port]))
 
         for domain in self.config.get_secondary_domains():
             procs.append(Process(target=zoneTransferSS, args=[self.config, logger, domain.name]))
@@ -216,7 +216,7 @@ class Server:
 
         self.run_main()
 
-        #logger.log(LoggingEntryType.SP, '127.0.0.1', ['TODO: cenas aqui'])
+        #logger.log(LoggingEntryType.SP, 'utils.get_local_ip()', ['TODO: cenas aqui'])
     
 def extract_flag(flag):
     '''

@@ -7,6 +7,7 @@ Date of Modification: 16/11/2022 13:56
 
 import socket
 from typing import Optional
+from . import utils
 
 class UDP:
     """
@@ -19,7 +20,7 @@ class UDP:
     bufferSize : int -> The size of the buffer for messages
     binding : bool   -> Whether or not to bind to the port
     """
-    def __init__(self, localIP:str = "127.0.0.1", localPort:int = 0, timeout:Optional[float] = None, bufferSize:int = 1024, binding:bool = False):
+    def __init__(self, localIP:str = utils.get_local_ip(), localPort:int = 0, timeout:Optional[float] = None, bufferSize:int = 1024, binding:bool = False):
         self.localIP = localIP
         self.localPort = localPort
         self.bufferSize = bufferSize
