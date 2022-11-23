@@ -269,17 +269,18 @@ def zoneTransferSS(serverData, logger, domain_name):
             #TODO: Add bytes transferred and time elapsed
             logger.put(LogMessage(LoggingEntryType.ZT, domain.primaryServer, \
                 ["SS"], domain_name))
-        #except:
-        #    logger.put(LogMessage(LoggingEntryType.EZ, domain.primaryServer, \
-        #        ["SS"], domain_name))
-        #    # If zone transfer fails, retry after SOARETRY
-        #    # seconds
-        #    time.sleep(domain.get_retry())
-        #    continue
+        except:
+            logger.put(LogMessage(LoggingEntryType.EZ, domain.primaryServer, \
+                ["SS"], domain_name))
+            # If zone transfer fails, retry after SOARETRY
+            # seconds
+            time.sleep(domain.get_retry())
+            continue
         finally:
             tcpSocket.shutdown(socket.SHUT_WR)
             tcpSocket.close()
-
+            serverData.set_domain(domain.name, domain)
+            
         # Wait SOAREFRESH seconds before refreshing
         # database
         time.sleep(domain.get_refresh())

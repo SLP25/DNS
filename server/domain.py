@@ -99,8 +99,8 @@ class SecondaryDomain(Domain):
         """
         super().__init__(name)
         self.primaryServer = None
-        self.aliases = None
-        self.dnsEntries = None
+        self.aliases = {}
+        self.dnsEntries = []
         self.expire = 60
         self.retry = 60
         self.refresh = 60

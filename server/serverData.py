@@ -66,6 +66,7 @@ class ServerData:
         self.defaultServers = OrderedDict() #domain name:ip[:port]
         self.topServers = []                #ips
         self.loggers = []                   #file paths
+        self.count = 0
 
         try:
             with open(filePath, "r") as file:
@@ -84,7 +85,10 @@ class ServerData:
 
         except FileNotFoundError:
             raise NoConfigFileException("Could not open " + filePath)
-        
+    
+    def set_domain(self, domain_name, domain):
+        self.domains[domain_name] = domain
+    
     def replaceDomainEntries(self, domain:str, new_entries:List[DNSEntry]):
         """
         Replaces the entries of the given secondary domain
