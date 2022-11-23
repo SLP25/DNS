@@ -84,6 +84,10 @@ def processPacket(serverData, packet, ip, domain = None):
             [ZoneTransferPacket(SequenceNumber(0), ZoneStatus.BAD_REQUEST, domain, "")])
 
 def zoneTransferSPClient(serverData, logger, conn, address):
+    """
+    Handles the zone transfer process from the point of view of the SP,
+    for a single SS client. Is called as a new thread by zoneTransferSP
+    """
     domain = None
     try:
         clientConnected = TCPWrapper(conn, ZoneTransferPacket.split_messages, \
@@ -258,15 +262,14 @@ def zoneTransferSS(serverData, logger, domain_name):
             versionNumber = getServerVersionNumber(tcpSocket, domain.name)
 
             #There is no new version of the database available
-            if versionNumber <= domain.get_serial():
+            if versionNumber == domain.get_serial():
                 time.sleep(domain.get_refresh())
-                continue
+            else:
+                numberEntries = getDomainNumberEntries(tcpSocket, domain.name)
+                acknowledgeNumberEntries(tcpSocket, domain.name, numberEntries)
+                getAllEntries(tcpSocket, domain, numberEntries)
 
-            numberEntries = getDomainNumberEntries(tcpSocket, domain.name)
-            acknowledgeNumberEntries(tcpSocket, domain.name, numberEntries)
-            getAllEntries(tcpSocket, domain, numberEntries)
-
-            #TODO: Add bytes transferred and time elapsed
+            #TODO: Add bytes transferred and time elapsed/serial number
             logger.put(LogMessage(LoggingEntryType.ZT, domain.primaryServer, \
                 ["SS"], domain_name))
         #except:

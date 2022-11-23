@@ -27,13 +27,6 @@ class Domain:
         Creates an empty domain with the given name
         """
         self.name = name
-        self.logFiles = []
-    
-    def add_log_file(self, log_file:str,logger):
-        """
-        Adds a specific log file path to the domian
-        """
-        logger.put(LogCreate(log_file, self.name))
         
 class PrimaryDomain(Domain):
     """
@@ -49,7 +42,7 @@ class PrimaryDomain(Domain):
         self.database = None
         
     def is_authorized(self, ip):
-        return ip in self.authorizedSS  #TODO: authorizedSSs may not contain port
+        return ip in self.authorizedSS  #TODO: authorizedSSs may contain port
         
     def set_database(self, path:str):    
         """
@@ -62,6 +55,9 @@ class PrimaryDomain(Domain):
             raise InvalidConfigFileException("Duplicated DB for domain " + self.name)
 
         self.database = Database(path)
+        origin = self.database.get_origin() #TODO: use SOASP instead?
+        if utils.normalize_domain(origin) != self.name:
+            raise InvalidConfigFileException(f"DB's origin ({origin}) doesn't match domain name ({self.name})")
 
     def add_authorizedSS(self, authorizedSS:str):
         """
@@ -99,12 +95,12 @@ class SecondaryDomain(Domain):
         """
         super().__init__(name)
         self.primaryServer = None
-        self.aliases = None
-        self.dnsEntries = None
+        self.aliases = {}
+        self.dnsEntries = []
         self.expire = 60
         self.retry = 60
         self.refresh = 60
-        self.serial = 60
+        self.serial = None
     
     def set_primary_server(self, primary_server:str):
         """

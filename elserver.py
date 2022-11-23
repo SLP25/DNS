@@ -72,7 +72,7 @@ class Server:
         If the server is a resolver (initialized with -r flag), it answers every query
         Otherwise, only queries about certain domains (DD in config file) are answered
         '''
-        return self.resolver or self.config.is_default(query.name)
+        return self.resolver or self.config.answers_query(query.name)
 
     def query(self, address, query:QueryInfo, recursive:bool):
         """
@@ -137,9 +137,9 @@ class Server:
         ans = self.config.answer_query(query)   #try database
         if ans.positive():
             return ans
-        
+
         if not recursive:                       #give up :)
-            return None
+            return None         #TODO: destir agr ou depois de 1 query?
 
         #start search from the root/default servers
         next_dns = self.config.get_first_servers(query.name)
@@ -180,6 +180,7 @@ class Server:
             return None
 
         if not self.answers_query(msg.query):
+            logger.put(LogMessage(LoggingEntryType.ER, address, ["The received query shouldn't be answered:", msg]))
             return None
         
         logger.put(LogMessage(LoggingEntryType.QE, address, [msg],msg.query.name))
@@ -194,6 +195,7 @@ class Server:
         Main server loop
         Receives DNS queries, and calls the processing function
         '''
+        #TODO: enunciado diz q log ST tem de ter address=127.0.0.1. ignorar???
         logger.put(LogMessage(LoggingEntryType.ST, utils.get_local_ip(), ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', debug]))
         self.server = UDP(localPort=port,binding = True)
 
@@ -216,6 +218,7 @@ class Server:
 
         self.run_main()
 
+        #TODO: enunciado diz q log ST tem de ter address=127.0.0.1. ignorar???
         #logger.log(LoggingEntryType.SP, 'utils.get_local_ip()', ['TODO: cenas aqui'])
     
 def extract_flag(flag):

@@ -42,10 +42,10 @@ class Database:
         for line in lines:#this way we can get a list of all lines
             self.__process_line__(line.rstrip('\n'))
                 
-        self.__get_origin__()
+        self.get_origin()
             
             
-    def __get_origin__(self):     
+    def get_origin(self):     
         if '@' not in self.macros:
             raise InvalidDatabaseException('Origin (@) not found')
         
@@ -55,7 +55,8 @@ class Database:
         if domain[-1] == '.':
             return domain
         
-        return domain + '.' + (self.__get_origin__() if self.__get_origin__() != '.' else '')
+        origin = self.get_origin()
+        return domain + '.' + (origin if origin != '.' else '')
     
     def __replace_macros__(self, exp):
         for k,v in self.macros.items():

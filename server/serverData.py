@@ -115,12 +115,17 @@ class ServerData:
         else:
             return self.topServers
         
-    def is_default(self, d:str):
+    def answers_query(self, d:str):
+        """
+        Determines whether the current config allows the server to answer a query
+        on the given domain. This is true if either no default servers were indicated,
+        or if the given domain is a subdomain of one of the default servers
+        """
         for k in self.defaultServers:
             if utils.is_subdomain(d, k):
                 return True
 
-        return False
+        return len(self.defaultServers) == 0
         
     def answer_query(self, query:QueryInfo):
         """
@@ -226,7 +231,7 @@ class ServerData:
                     self.logger.put(LogCreate(data))
                     self.loggers.append(data)
                 else:
-                    self.get_domain(domain, create=True).add_log_file(data,self.logger)
+                    self.logger.put(LogCreate(data, domain))
                     
         except ValueError:
             raise InvalidConfigFileException(line + " has no valid type")
