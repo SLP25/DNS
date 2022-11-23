@@ -22,7 +22,7 @@ class TCPWrapper:
         """Default constructor
 
         Args:
-            client (socket): a TCP client socket
+            conn (socket): a TCP conn socket
             splitFunction (function): function used to split the messages.
             Must receive one argument - bytes - and return a tuple of bytes
             bufferSize (int): the number of bytes to read from the socket at once
@@ -70,7 +70,15 @@ class TCPWrapper:
         self.conn.sendall(message)
         
     def shutdown(self, mode):
+        """shutdown the tcp socket
+
+        Args:
+            mode : the end of file to send to shutdown the socket
+        """
         self.conn.shutdown(mode)
         
     def close(self):
+        """
+            closes the tcp socket
+        """
         self.conn.close()
