@@ -42,8 +42,6 @@ class Server:
         Creates a new instance of the class with the given resolver status and
         the given configuration file path
         '''
-        MyManager.register('ServerData', ServerData)
-
         self.manager = MyManager()
         self.manager.start()
         self.config = self.manager.ServerData(config_file, logger)
@@ -53,6 +51,19 @@ class Server:
         self.cache = Cache()
 
         #TODO: init zone transfers
+        
+    def encode_msg(self, msg:DNSMessage):
+        '''
+        From a DNSMessage, returns the bytes to be sent through the socket
+        '''
+        return str(msg).encode() #if debug else msg.to_bytes()
+    
+    def decode_msg(self, bytes):
+        '''
+        From the bytes received from the socket, returns the encoded DNSMessage
+        If the bytes don't correspond to a valid DNSMessage, an InvalidDNSMessageException is raised
+        '''
+        return DNSMessage.from_string(bytes.decode()) #if debug else DNSMessage.from_bytes(bytes)
 
     def answers_query(self, query:QueryInfo):
         '''
@@ -61,14 +72,7 @@ class Server:
         If the server is a resolver (initialized with -r flag), it answers every query
         Otherwise, only queries about certain domains (DD in config file) are answered
         '''
-        if self.resolver:
-            return True
-
-        for k in self.config.defaultServers:
-            if utils.is_subdomain(query.name, k):
-                return True
-
-        return False
+        return self.resolver or self.config.is_default(query.name)
 
     def query(self, address, query:QueryInfo, recursive:bool):
         """
@@ -82,14 +86,15 @@ class Server:
         logger.put(LogMessage(LoggingEntryType.QE, address, [msg],query.name))
 
         try:
-            udp.send(str(msg).encode(), ip, port) #TODO: check debug mode (if off, send bytes instead of string)
+            data = self.encode_msg(msg)
+            udp.send(data, ip, port)
             bytes, _, _ = udp.receive()
         except socket.timeout:
             logger.put(LogMessage(LoggingEntryType.TO, address, ['DNS query timed out'],query.name))
             return None
 
         try:
-            ans = DNSMessage.from_string(bytes.decode()) #TODO: check debug mode
+            ans = self.decode_msg(bytes)
 
             if ans.is_query():
                 logger.put(LogMessage(LoggingEntryType.ER, address, ["The received DNSMessage isn't a response: ", ans],query.name))
@@ -130,8 +135,11 @@ class Server:
             return ans
 
         ans = self.config.answer_query(query)   #try database
-        if ans.positive() or not recursive:
+        if ans.positive():
             return ans
+        
+        if not recursive:                       #give up :)
+            return None
 
         #start search from the root/default servers
         next_dns = self.config.get_first_servers(query.name)
@@ -143,7 +151,7 @@ class Server:
                 return prev_ans if prev_ans else None
 
             self.cache.add_response(ans)
-            if ans.positive() or not recursive:     #success!
+            if ans.positive():     #success!
                 return ans
 
             prev_ans = ans  #store previous answer
@@ -154,7 +162,7 @@ class Server:
             auths = [e.value for e in ans.authorities]                              #next, get the hostname of their dns
             next_dns = utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
 
-    def process_message(self, message, ip, port):
+    def process_message(self, message, ip:str, port:int):
         '''
         Processes the received message from the given address
         Returns a response message, or None if the query shouldn't be answered (see answers_query())
@@ -162,17 +170,13 @@ class Server:
         address = f'{ip}:{port}'
 
         try:
-            msg = DNSMessage.from_string(message.decode())
+            msg = self.decode_msg(message)
         except:
             logger.put(LogMessage(LoggingEntryType.ER, address, ["TODO: meter msg de erro aqui"]))
             return None 
         
         if not msg.is_query():
             logger.put(LogMessage(LoggingEntryType.ER, address, ["The received DNSMessage isn't a query:", msg]))
-            return None
-
-        if not msg.is_query():
-            #logger.log(LoggingEntryType.ER, address, ["The received DNSMessage isn't a query:", msg])
             return None
 
         if not self.answers_query(msg.query):
@@ -183,14 +187,14 @@ class Server:
         if ans:
             resp = msg.generate_response(ans, self.supports_recursive)
             logger.put(LogMessage(LoggingEntryType.RP, address, [resp],msg.query.name))
-            return str(resp).encode()
+            return self.encode_msg(resp)
 
     def run_main(self):
         '''
         Main server loop
         Receives DNS queries, and calls the processing function
         '''
-        logger.put(LogMessage(LoggingEntryType.ST, '127.0.0.1', ['port:', port, 'timeout:', timeout, 'debug:', debug]))
+        logger.put(LogMessage(LoggingEntryType.ST, '127.0.0.1', ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', debug]))
         self.server = UDP(localPort=port,binding = True)
 
         while(True):
@@ -241,6 +245,7 @@ def main():
     -r : Whether this server is a resolver (SR) or not
     -d : If the server is in debug mode
     '''
+    MyManager.register('ServerData', ServerData)
     global debug
     debug = "-d" in sys.argv
     resolver = "-r" in sys.argv
