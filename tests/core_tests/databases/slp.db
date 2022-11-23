@@ -1,5 +1,17 @@
+# DNS database for the .slp top level domain
+
 @ DEFAULT slp.
-TTL DEFAULT 600
+TTL DEFAULT 60
+
+@ SOASP sdt.slp. TTL
+@ SOAADMIN dns\.admin.slp. TTL
+
+# This parameter might change in order to test zone transfers
+@ SOASERIAL 20221123 TTL
+
+@ SOAREFRESH 30 TTL
+@ SOARETRY 30 TTL
+@ SOAEXPIRE 40 TTL
 
 mindflayer NS sp.mindflayer.slp. TTL 1
 mindflayer NS ss2.mindflayer.slp. TTL 2

@@ -1,7 +1,23 @@
+# DNS database for the sheoldred.ium domain
+
 @ DEFAULT sheoldred.ium.
-TTL DEFAULT 600
+TTL DEFAULT 60
 
-@ A 141.67.43.181 TTL
+@ SOASP sp.sheoldred.ium. TTL
+@ SOAADMIN dns\.admin.sheoldred.ium. TTL
 
-deathtouch A 201.143.143.141 TTL
-black A 139.122.12.250 TTL
+# This parameter might change in order to test zone transfers
+@ SOASERIAL 20221123 TTL
+
+@ SOAREFRESH 30 TTL
+@ SOARETRY 30 TTL
+@ SOAEXPIRE 40 TTL
+
+
+@ A 10.0.12.10 TTL
+
+@ MX deathtouch TTL 1
+@ MX black TTL
+
+deathtouch A 10.0.12.14 TTL
+black A 10.0.12.15 TTL

@@ -1,8 +1,24 @@
-10.0.12.12 PTR slp
-10.0.12.13 PTR ium
-10.0.12.11 PTR mindflayer.slp
-10.0.12.10 PTR sheoldred.batata
-10.0.12.14 PTR deathtouch.sheoldred.batata
-10.0.12.15 PTR black.sheoldred.batata
-10.0.12.16 PTR foretell.mindflayer.slp
-10.0.12.17 PTR blue.mindflayer.slp
+# DNS database for the .arpa top level domain
+# used for reverse DNS
+
+@ DEFAULT arpa.
+TTL DEFAULT 60
+
+@ SOASP sdt.arpa. TTL
+@ SOAADMIN dns\.admin.arpa. TTL
+
+# This parameter might change in order to test zone transfers
+@ SOASERIAL 20221123 TTL
+
+@ SOAREFRESH 30 TTL
+@ SOARETRY 30 TTL
+@ SOAEXPIRE 40 TTL
+
+10.0.12.12 PTR slp TTL
+10.0.12.13 PTR ium TTL
+10.0.12.11 PTR mindflayer.slp TTL
+10.0.12.10 PTR sheoldred.batata TTL
+10.0.12.14 PTR deathtouch.sheoldred.batata TTL
+10.0.12.15 PTR black.sheoldred.batata TTL
+10.0.12.16 PTR foretell.mindflayer.slp TTL
+10.0.12.17 PTR blue.mindflayer.slp TTL

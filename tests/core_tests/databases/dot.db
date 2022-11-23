@@ -1,5 +1,17 @@
+# DNS database for the . (dot) top level domain
+
 @ DEFAULT .
-TTL DEFAULT 600
+TTL DEFAULT 60
+
+@ SOASP st. TTL
+@ SOAADMIN dsn\.dot. TTL
+
+# This might change in order to test zone transfers
+@ SOASERIAL 20221123 TTL
+
+@ SOAREFRESH 30 TTL
+@ SOARETRY 30 TTL
+@ SOAEXPIRE 40 TTL
 
 slp NS sdt.slp TTL
 ium NS sdt.ium TTL
