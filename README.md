@@ -1,2 +1,2 @@
 # DNS
-A Domain Name Service implementation
+A Domain Name System implementation
