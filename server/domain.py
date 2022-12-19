@@ -41,10 +41,10 @@ class PrimaryDomain(Domain):
         self.authorizedSS = []
         self.database = None
         
-    def is_authorized(self, ip):
+    def is_authorized(self, ip:str) -> bool:
         return ip in self.authorizedSS  #TODO: authorizedSSs may contain port
         
-    def set_database(self, path:str):    
+    def set_database(self, path:str) -> None:
         """
         Reads the database of the domain from the specidied path
         If the path to the file is invalid, an InvalidConfigFileException is raised
@@ -55,11 +55,11 @@ class PrimaryDomain(Domain):
             raise InvalidConfigFileException("Duplicated DB for domain " + self.name)
 
         self.database = Database(path)
-        origin = self.database.get_origin() #TODO: use SOASP instead?
+        origin = self.database.get_origin() #use SOASP instead?
         if utils.normalize_domain(origin) != self.name:
             raise InvalidConfigFileException(f"DB's origin ({origin}) doesn't match domain name ({self.name})")
 
-    def add_authorizedSS(self, authorizedSS:str):
+    def add_authorizedSS(self, authorizedSS:str) -> None:
         """
         Adds the ip address of a SS to the list of authorized SS's
         If the string isn't a valid ip address (optionally with port), an InvalidConfigFileException is raised
@@ -69,7 +69,7 @@ class PrimaryDomain(Domain):
 
         self.authorizedSS.append(authorizedSS)
 
-    def validate(self):
+    def validate(self) -> None:
         """
         Determines whether the current instance has been fully parsed and can start answering queries
         If it isn't valid (doesn't contain a database yet), an InvalidConfigFileException is raised
@@ -77,7 +77,7 @@ class PrimaryDomain(Domain):
         if self.database == None:
             raise InvalidConfigFileException("No database file specified for primary domain " + self.name)
 
-    def answer_query(self, query:QueryInfo):
+    def answer_query(self, query:QueryInfo) -> QueryResponse:
         """
         Answers the given query by querying the database
         Returns a QueryResponse
@@ -102,7 +102,7 @@ class SecondaryDomain(Domain):
         self.refresh = 60
         self.serial = None
     
-    def set_primary_server(self, primary_server:str):
+    def set_primary_server(self, primary_server:str) -> None:
         """
         Sets the ip address of a SP as the entity to contact when performing a zone transfer
         If the string isn't a valid ip address (optionally with port), an InvalidConfigFileException is raised
@@ -116,19 +116,19 @@ class SecondaryDomain(Domain):
         
         self.primaryServer = primary_server
     
-    def get_expire(self):
+    def get_expire(self) -> int:
         return self.expire
     
-    def get_retry(self):
+    def get_retry(self) -> int:
         return self.retry
     
-    def get_refresh(self):
+    def get_refresh(self) -> int:
         return self.refresh
     
-    def get_serial(self):
+    def get_serial(self) -> int:
         return self.serial
     
-    def validate(self):
+    def validate(self) -> None:
         """
         Determines whether the current instance has been fully parsed and can start answering queries
         Note that being valid doesn't guarantee that the secondary domain already contains the entries
@@ -151,7 +151,7 @@ class SecondaryDomain(Domain):
         Arguments:
         new_entries : List (DNSEntry) -> A list with the new entries
         """
-    def set_entries(self, new_entries):
+    def set_entries(self, new_entries:list[DNSEntry]) -> None:
         self.dnsEntries = new_entries
         self.aliases = {}
         for e in self.dnsEntries:
@@ -167,15 +167,16 @@ class SecondaryDomain(Domain):
                 self.serial = int(e.value)
     
     #TODO: Thread safety
-    def answer_query(self, query:QueryInfo):    #TODO: invalidate entries after SOAEXPIRE seconds
+    def answer_query(self, query:QueryInfo) -> QueryResponse: #TODO: invalidate entries after SOAEXPIRE seconds
         """
         Answers the given query by searching the list of entries
         Returns a QueryResponse
         """
         hostname = self.__replace_aliases__(query.name)
-        return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.dnsEntries, True)
+        query = QueryInfo(hostname, query.type)
+        return QueryResponse.from_entries(query, self.dnsEntries, True, False)
     
-    def __replace_aliases__(self, domain:str):
+    def __replace_aliases__(self, domain:str) -> str:
         for k,v in self.aliases.items():
             domain = domain.replace(k, v)
         return domain

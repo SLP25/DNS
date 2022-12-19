@@ -45,30 +45,30 @@ class Database:
         self.get_origin()
             
             
-    def get_origin(self):     
+    def get_origin(self) -> str:
         if '@' not in self.macros:
             raise InvalidDatabaseException('Origin (@) not found')
         
         return self.macros['@']
     
-    def __complete_domain__(self, domain):
+    def __complete_domain__(self, domain:str) -> str:
         if domain[-1] == '.':
             return domain
         
         origin = self.get_origin()
         return domain + '.' + (origin if origin != '.' else '')
     
-    def __replace_macros__(self, exp):
+    def __replace_macros__(self, exp:str) -> str:
         for k,v in self.macros.items():
             exp = exp.replace(k, v)
         return exp
     
-    def __replace_aliases__(self, domain):
-        for k,v in self.macros.items():
+    def __replace_aliases__(self, domain:str) -> str:
+        for k,v in self.aliases.items():
             domain = domain.replace(k, v)
         return domain
     
-    def __process_line__(self, line):
+    def __process_line__(self, line:str) -> None:
         if re.search(utils.COMMENT_LINE, line):
             return
         
@@ -79,9 +79,10 @@ class Database:
             self.macros[match.group('k')] = match.group('v')
             return
         
-        match = re.search(f'^\s*(?P<k>{utils.DOMAIN})\s+CNAME\s+(?P<v>{utils.DOMAIN})\s+(?P<ttl>\d+)\s*$', line)
+        match = re.search(f'^\s*(?P<k>{utils.DOMAIN})\s+CNAME\s+(?P<v>{utils.DOMAIN})\s+(?P<ttl>\d+)\s*$',
+                          self.__replace_macros__(line))
         if match != None:
-            self.aliases[match.group('k')] = match.group('v')   #TODO: TTL???
+            self.aliases[match.group('k').lower()] = match.group('v').lower()   #TODO: TTL + incluir nos extra values
         
         match = re.search(
             f'^\s*(?P<p>{PARAMETER_CHAR}+)\s+(?P<t>{ENTRY_TYPE})\s+(?P<v>[^\s]+)\s+(?P<ttl>\d+)(\s+(?P<pr>\d+))?\s*$',
@@ -108,10 +109,10 @@ class Database:
         if ans.type == EntryType.SOASERIAL:
             self.serial = int(ans.value)
     
-    def answer_query(self, query:QueryInfo):
+    def answer_query(self, query:QueryInfo) -> QueryResponse:
         """
         Answers the query with the available DNSEntry's
         Returns a QueryResponse
         """
         hostname = self.__replace_aliases__(query.name)
-        return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.entries, True)
+        return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.entries, True, True)

@@ -9,6 +9,7 @@ Date of Modification: 14/11/2022 10:20
 
 from collections import OrderedDict
 import socket
+from typing import Callable, Generator, Iterable, Optional
 
 """
 The default port to use if no port is specified in the ip address of a dns server
@@ -77,7 +78,7 @@ A valid IPv4 address, optionally coupled with a port
 IP_MAYBE_PORT = f'(?P<ip>{IP_ADDRESS})(:(?P<port>{PORT_RANGE}))?'
 
 
-def flat_map(f, xs):
+def flat_map(f:Generator, xs:Iterable) -> Generator:
     """
     Given a function that produces lists and a list, flat_map applies the
     function to each element and concatenates the resulting lists
@@ -88,7 +89,7 @@ def flat_map(f, xs):
 
 
 
-def order_dict(dict, key):
+def order_dict(dict:dict, key:Callable) -> OrderedDict:
     """
     Given a dictionary and a function key that applies to the keys of the
     dictionary, returns an OrderedDict sorted by that function (from lowest to greatest)
@@ -100,7 +101,7 @@ def order_dict(dict, key):
 
     return ans
 
-def decompose_address(address:str):
+def decompose_address(address:str) -> tuple[str,int]:
     """
     Given a valid ip address (matches IP_MAYBE_PORT), returns a pair containing the ip and the port
     The port is returned as an integer. If the given address doesn't specify a port,
@@ -112,7 +113,7 @@ def decompose_address(address:str):
     return (ip, port)
 
 
-def normalize_domain(domain:str):
+def normalize_domain(domain:str) -> str:
     """
     Given a valid domain name (that matches DOMAIN or FULL_DOMAIN regexes), converts it
     to the normalized format: all lowercase, with a terminating dot
@@ -120,7 +121,7 @@ def normalize_domain(domain:str):
     return (domain if domain[-1] == '.' else domain + '.').lower()
 
 
-def split_domain(domain:str):
+def split_domain(domain:str) -> list[str]:
     """
     Given a valid domain name (that matches DOMAIN or FULL_DOMAIN regexes), returns a list
     with the subdomains, from highest to lowest hierarchically
@@ -134,7 +135,7 @@ def split_domain(domain:str):
     return ans
 
 
-def is_subdomain(subdomain:str, domain:str):
+def is_subdomain(subdomain:str, domain:str) -> bool:
     """
     Given two valid domain names (that match DOMAIN or FULL_DOMAIN regexes),
     determines whether the subdomain is hierarchically below the domain
@@ -157,7 +158,7 @@ def is_subdomain(subdomain:str, domain:str):
     return True
 
 #returns the domain in domains that best matches the subdomain
-def best_match(subdomain:str, domains):
+def best_match(subdomain:str, domains:list[str]) -> Optional[str]:
     """
     Given a valid domain name and a list of valid domain names (that match DOMAIN or FULL_DOMAIN regexes),
     determines the domain hierarchically closest to the subdomain
@@ -183,27 +184,27 @@ def best_match(subdomain:str, domains):
     return best
     
 
-def int_to_bytes(int:int, no_bytes:int):
+def int_to_bytes(int:int, no_bytes:int) -> bytes:
     """
     Parses the given unsigned integer to an array of bytes using the specified number of bytes
     If the integer is too big for the given number of bytes, an error is raised
     """
-    return int.to_bytes(no_bytes)
+    return int.to_bytes(no_bytes, 'little')
 
-def bytes_to_int(bytes, no_bytes:int, start:int = 0):
+def bytes_to_int(bytes:bytes, no_bytes:int, start:int = 0) -> int:
     """
     Given an array of bytes, returns the unsigned integer it represents
     Starts the parsing at the specified position and ends after no_bytes bytes
     """
-    return int.from_bytes(bytes[start:(start+no_bytes)])
+    return int.from_bytes(bytes[start:(start+no_bytes)], 'little')
 
-def string_to_bytes(string:str):
+def string_to_bytes(string:str) -> bytes:
     """
     Converts the given string to a null-terminated array of bytes
     """
     return string.encode() + b'\x00'
 
-def bytes_to_string(bytes, start:int = 0):
+def bytes_to_string(bytes:bytes, start:int = 0) -> tuple[str,int]:
     """
     Extracts a string from a null-terminated array of bytes
     Starts the parsing at the specified position
@@ -211,10 +212,11 @@ def bytes_to_string(bytes, start:int = 0):
     Returns a pair containing the parsed string and the number of
     consumed bytes (including the null terminator) plus the start position
     """
-    aux = bytes[start:].split('\x00', 1)
-    return (aux[0].decode(), len(aux[0]) + 1)
+    aux = bytes[start:].split(b'\x00', 1)
+    return (aux[0].decode(), start + len(aux[0]) + 1)
 
-def get_local_ip():
+def get_local_ip() -> str:
+    #return '127.0.0.1'
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     ans = s.getsockname()[0]

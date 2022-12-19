@@ -4,6 +4,7 @@ from enum import Enum
 import datetime
 import time
 import sys
+from typing import Optional
 
 
 logger = None
@@ -27,14 +28,14 @@ class Logging:
     mainLogger=None
     domains={}
     
-    def __init__(self,debug=False):
+    def __init__(self,debug:bool=False):
         self.debug=debug
         
-    def is_valid(self):
+    def is_valid(self) -> bool:
         #TODO: return false if no log file is set for mainLogger        
         return True
     
-    def __setup_logger__(self,name, log_file):
+    def __setup_logger__(self, name:str, log_file:str) -> None:
         """creates a logger with a given name
         or the root logger if no name is givver
         stores the data in the log_file
@@ -64,7 +65,7 @@ class Logging:
         else:
             self.domains[name]=logger
     
-    def setupLogger(self,filename:str,domain:str,isRoot=False):
+    def setupLogger(self,filename:str,domain:str,isRoot:bool=False) -> None:
         """
         sets up the logger inside the class
         if isRoot is True then the name will not be used
@@ -78,14 +79,14 @@ class Logging:
         else:
             self.__setup_logger__(domain,filename)
     
-    def __stardizeMessage__(self,etype:LoggingEntryType,ip:str,data:list):
+    def __stardizeMessage__(self,etype:LoggingEntryType,ip:str,data:list) -> str:
         now=datetime.datetime.now()
         timestamp=now.strftime("%d:%m:%Y.%H:%M:%S:")+now.strftime("%f")[:3]#19:10:2022.11:20:50:020
         return ' '.join([timestamp,str(etype.name),ip]+[str(x) for x in data])
         
         
         
-    def log(self,etype:LoggingEntryType,address:str,data:list,domain=None):
+    def log(self,etype:LoggingEntryType,address:str,data:list,domain:Optional[str]=None) -> None:
         if not domain:
             if not self.mainLogger:
                 raise ValueError()  #MainLoggerNotIniciatedException()  TODO

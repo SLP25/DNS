@@ -24,7 +24,7 @@ from common.dnsEntry import DNSEntry
 
 from .exceptions import InvalidZoneTransferPacketException
 
-class SequenceNumber(Enum):
+class SequenceNumber(Enum):     #TODO: trocar SequenceNumber(x) por SequenceNumber.XXX por todo o lado
     '''
     The sequence number indicates which part of the zone transfer
     protocol is being conducted
@@ -48,7 +48,7 @@ class SequenceNumber(Enum):
     SS_ACKNOWLEDGE = 6
     SP_ACKNOWLEDGE = 7
 
-class ZoneStatus(Enum):
+class ZoneStatus(Enum):     #TODO: same provavelmente
     '''
     The status indicates the response code for the previous request.
     In other words, the SS will send a request (with status 0) and the

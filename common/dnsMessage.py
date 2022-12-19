@@ -32,7 +32,7 @@ class DNSMessage:
     """
     
     @staticmethod
-    def from_query(query:QueryInfo, recursive:bool, messageID:int = random.randrange(1,65357)):
+    def from_query(query:QueryInfo, recursive:bool, messageID:int = random.randrange(1,65357)) -> 'DNSMessage':
         """
         Constructs a DNSMessage query from the given QueryInfo, recursive flag and messageID
         """
@@ -48,7 +48,7 @@ class DNSMessage:
         return ans
     
 
-    def generate_response(self, response:QueryResponse, supports_recursive:bool):
+    def generate_response(self, response:QueryResponse, supports_recursive:bool) -> 'DNSMessage':
         """
         Generates a response DNSMessage to the current instance using the
         given QueryResponse and supports_recursive flag
@@ -57,11 +57,11 @@ class DNSMessage:
         ans.messageID = self.messageID
         ans.query = self.query
         ans.response = response
-        ans.responseCode = 0 if response.positive() else 1
+        ans.responseCode = (2 if len(response.values) == 0 else 0) if response.isFinal() else 1
         ans.supports_recursive = supports_recursive
         return ans
     
-    def generate_error_response(self, supports_recursive:bool):
+    def generate_error_response(self, supports_recursive:bool) -> 'DNSMessage':
         """
         Generates an error response DNSMessage to the current instance (responseCode = 3)
         using the given supports_recursive flag
@@ -73,15 +73,28 @@ class DNSMessage:
         ans.responseCode = 3
         ans.supports_recursive = supports_recursive
         return ans
+    
+    @staticmethod
+    def error_response(supports_recursive:bool) -> 'DNSMessage':
+        """
+        Generates an error response DNSMessage(responseCode = 3) using the given supports_recursive flag
+        """
+        ans = DNSMessage()
+        ans.messageID = 1
+        ans.query = QueryInfo("", EntryType.A)
+        ans.response = QueryResponse()
+        ans.responseCode = 3
+        ans.supports_recursive = supports_recursive
+        return ans
         
-    def is_query(self):
+    def is_query(self) -> bool:
         """
         Returns whether the current instance is a query. If false, the instance is a response
         """
         return not hasattr(self, 'response')
     
 
-    def __flag_recursive__(self):
+    def __flag_recursive__(self) -> bool:
         """if query    : return the state of the recursive flag
            if response : return if supports recursive mode
         
@@ -96,7 +109,7 @@ class DNSMessage:
         
     #if self is a query, returns False
     #if self is a response, indicates whether the response is authoritative
-    def __flag_authoritative__(self):
+    def __flag_authoritative__(self) -> bool:
         """if query    : return False
            if response : return if the response is authoritative
 
@@ -108,7 +121,7 @@ class DNSMessage:
         else:
             return self.response.authoritative
 
-    def __flags_as_string__(self):
+    def __flags_as_string__(self) -> str:
         """Return the flags of the message as a string Representation
 
         Returns:
@@ -117,10 +130,10 @@ class DNSMessage:
         return '+'.join(f"{'Q' if self.is_query() else ''}{'R' if self.__flag_recursive__() else ''}{'A' if self.__flag_authoritative__() else ''}")
 
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Determines the representation of the current instance as a string
-        (as of examples 5 and 6 of the statement)
+        (as of examples 5 and 7 of the statement)
         """
         ans = f'{self.messageID},' \
             + f'{self.__flags_as_string__()},' \
@@ -137,9 +150,31 @@ class DNSMessage:
             ans += f"{br}{f',{br}'.join(map(str, self.response.extra_values))};"
 
         return ans
+    
+    def print(self) -> str:
+        """
+        Determines the pretty representation of the current instance as a string
+        (as of examples 4, 6 and 8 of the statement)
+        """
+        ans = '# Header\n' \
+            + f'MESSAGE-ID = {self.messageID}, ' \
+            + f'FLAGS = {self.__flags_as_string__()}, ' \
+            + f'RESPONSE-CODE = {self.responseCode if not self.is_query() else 0},\n' \
+            + f'N-VALUES = {len(self.response.values) if not self.is_query() else 0}, ' \
+            + f'N-AUTHORITIES = {len(self.response.authorities) if not self.is_query() else 0}, ' \
+            + f'N-EXTRA-VALUES = {len(self.response.extra_values) if not self.is_query() else 0},;\n' \
+            + f'# Data: Query Info\n' \
+            + f'QUERY-INFO.NAME = {self.query.name}, QUERY-INFO.TYPE = {self.query.type},;\n' \
+            + f'# Data: List of Response, Authorities and Extra Values\n'
+            
+        ans += f'{__print_list__("RESPONSE-VALUES", [] if self.is_query() else self.response.values)}\n'
+        ans += f'{__print_list__("AUTHORITIES-VALUES", [] if self.is_query() else self.response.authorities)}\n'
+        ans += f'{__print_list__("EXTRA-VALUES", [] if self.is_query() else self.response.extra_values)}'
+        
+        return ans            
 
     @staticmethod
-    def from_string(str:str):
+    def from_string(str:str) -> 'DNSMessage':
         """
         Constructs an instance of DNSMessage from the given string representation
         (as of examples 5 and 6 of the statement)
@@ -166,36 +201,36 @@ class DNSMessage:
             vals, body = __read_entries__(body, int(match.group('vals')))
             auths, body = __read_entries__(body, int(match.group('auths')))
             extras, body = __read_entries__(body, int(match.group('extras')))
-            ans.response = QueryResponse(vals, auths, extras, flag_a)
+            ans.response = QueryResponse(vals, auths, extras, ans.responseCode == 2, flag_a)
             
         if body != '':
             raise InvalidDNSMessageException(f"{body} not expected after DNS packet")
             
         return ans
 
-    def to_bytes(self):
+    def to_bytes(self) -> bytes:
         """
         Converts the current instance to an array of bytes
         """
         flags = (1 if self.is_query() else 0) << 2 | (1 if self.__flag_recursive__() else 0) << 1 | (1 if self.__flag_authoritative__() else 0)
-        flags_plus_response_code = flags << 2 | (self.responseCode if self.is_query() else 0)
+        flags_plus_response_code = flags << 2 | (self.responseCode if not self.is_query() else 0)
         
         ans = utils.int_to_bytes(self.messageID - 1, 2) \
             + utils.int_to_bytes(flags_plus_response_code, 1) \
-            + utils.int_to_bytes(len(self.response.values) if self.is_query() else 0, 1) \
-            + utils.int_to_bytes(len(self.response.authorities) if self.is_query() else 0, 1) \
-            + utils.int_to_bytes(len(self.response.extra_values) if self.is_query() else 0, 1) \
+            + utils.int_to_bytes(len(self.response.values) if not self.is_query() else 0, 1) \
+            + utils.int_to_bytes(len(self.response.authorities) if not self.is_query() else 0, 1) \
+            + utils.int_to_bytes(len(self.response.extra_values) if not self.is_query() else 0, 1) \
             + utils.string_to_bytes(self.query.name) \
             + utils.int_to_bytes(self.query.type.value, 1)
         
-        if not ans.is_query():
+        if not self.is_query():
             for e in itertools.chain(self.response.values, self.response.authorities, self.response.extra_values):
                 ans += e.to_bytes()
         
         return ans
 
     @staticmethod
-    def from_bytes(data):
+    def from_bytes(data:bytes) -> tuple['DNSMessage',int]:
         """
         Constructs an instance of DNSMessage from an array of bytes
         If the parsing fails, an InvalidDNSMessageException is raised
@@ -235,13 +270,13 @@ class DNSMessage:
             values, pos = __parse_entries__(data, vals, pos)
             authorities, pos = __parse_entries__(data, auths, pos)
             extra_values, pos = __parse_entries__(data, extra_vals, pos)
-            ans.response = QueryResponse(values, authorities, extra_values, flag_a)
+            ans.response = QueryResponse(values, authorities, extra_values, ans.responseCode == 2, flag_a)
         
         ans.query = QueryInfo(name, type)
         return (ans, pos)
 
 
-def __read_flags__(str):
+def __read_flags__(str:str) -> tuple[bool,bool,bool]:
     """returns a tuple of the state of each flags in the order: Query,Recursive,Authoritative
 
     Args:
@@ -259,7 +294,7 @@ def __read_flags__(str):
     
     return ('Q' in str, 'R' in str, 'A' in str)
 
-def __read_entries__(str, expected:int):
+def __read_entries__(str:str, expected:int) -> tuple[list[DNSEntry],str]:
     """parse a given number of entries from a string
 
     Args:
@@ -273,19 +308,24 @@ def __read_entries__(str, expected:int):
         Tuple: list of all entries found and the rest of the string that wasn't read
     """
     ans = []
-    while expected > 0:
-        expected -= 1
-        
-        m = re.search(f"^\n(?P<param>[^\s]+) (?P<type>{ENTRY_TYPE}) (?P<val>[^\s]+) (?P<ttl>\d+)( (?P<pr>\d+))?{',' if expected > 0 else ';'}", str)
-        if not m:
-            raise InvalidDNSMessageException(f"{str} doesn't contain the expected DNS entry format")
-        
-        ans.append(DNSEntry.from_text(m.group('param'), m.group('type'), m.group('val'), m.group('ttl'), m.group('pr')))
+    
+    if expected == 0:
+        m = re.search(f"^\n;", str)
         str = str[m.end():]
+    else:
+        while expected > 0:
+            expected -= 1
+            
+            m = re.search(f"^\n(?P<param>[^\s]+) (?P<type>{ENTRY_TYPE}) (?P<val>[^\s]+) (?P<ttl>\d+)( (?P<pr>\d+))?{',' if expected > 0 else ';'}", str)
+            if not m:
+                raise InvalidDNSMessageException(f"{str} doesn't contain the expected DNS entry format")
+            
+            ans.append(DNSEntry.from_text(m.group('param'), m.group('type'), m.group('val'), m.group('ttl'), m.group('pr')))
+            str = str[m.end():]
 
     return (ans, str)
 
-def __parse_entries__(data, expected:int, pos:int = 0):
+def __parse_entries__(data:bytes, expected:int, pos:int = 0) -> tuple[list[DNSEntry],int]:
     """_summary_
 
     Args:
@@ -304,3 +344,10 @@ def __parse_entries__(data, expected:int, pos:int = 0):
         pos += aux
         
     return (ans, pos)
+
+def __print_list__(list_name:str, list:list[DNSEntry]):
+    
+    if list == []:
+        return f'{list_name} = (Null)'
+    else:
+        return '\n'.join([f'{list_name} = {e}' for e in list])

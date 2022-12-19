@@ -5,6 +5,7 @@ import datetime
 import time
 import sys
 from multiprocessing import Queue,Process
+from typing import Optional
 
 
 class LoggingEntryType(Enum):
@@ -28,7 +29,7 @@ class LogMessage:
     """
        The class representing a logging message 
     """
-    def __init__(self,etype:LoggingEntryType,ip:str,data:list,domain:str=None):
+    def __init__(self,etype:LoggingEntryType,ip:str,data:list,domain:Optional[str]=None):
         """method to create a log message with the given data
 
         Args:
@@ -42,7 +43,7 @@ class LogMessage:
         self.data=data
         self.domain=domain
     
-    def __stardizeMessage__(self):
+    def __stardizeMessage__(self) -> str:
         """Converts  a logMessage into a string
 
         Returns:
@@ -68,7 +69,7 @@ class LogCreate:
 
     
 
-def logger_process(queue:Queue,debug:bool):
+def logger_process(queue:Queue,debug:bool) -> None:
     """
     The queue will receive None,LogMessage,LogCreate:
         if None:

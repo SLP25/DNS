@@ -7,6 +7,10 @@ not partial messages. For example, in the buffer with "<Message 1><Message 2>",
 a call to the API of the wrapper class would return "<Message 1>" instead of
 "<Message1><Mess" or "Mess<"
 """
+import socket
+from typing import Callable
+
+
 class TCPWrapper:
     """
     Wrapper class for TCP connections
@@ -18,7 +22,7 @@ class TCPWrapper:
     a call to the API of the wrapper class would return "<Message 1>" instead of
     "<Message1><Mess" or "Mess<"
     """
-    def __init__(self, conn, splitFunction, bufferSize, address = None):
+    def __init__(self, conn:socket, splitFunction:Callable, bufferSize:int, address:tuple[str,int] = None):
         """Default constructor
 
         Args:
@@ -33,7 +37,7 @@ class TCPWrapper:
         self.bufferSize = bufferSize
         self.buffer = "".encode()
         
-    def read(self):
+    def read(self) -> bytes:
         """Returns the oldest message in the socket.
         
         There is no guarantee on the number of reads this method
@@ -61,7 +65,7 @@ class TCPWrapper:
         self.buffer = buffer.encode()
         return message.encode()
     
-    def write(self, message):
+    def write(self, message:bytes) -> None:
         """
         Writes the given message to the socket
         Args:
@@ -69,7 +73,7 @@ class TCPWrapper:
         """
         self.conn.sendall(message)
         
-    def shutdown(self, mode):
+    def shutdown(self, mode:int) -> None:
         """shutdown the tcp socket
 
         Args:
@@ -77,7 +81,7 @@ class TCPWrapper:
         """
         self.conn.shutdown(mode)
         
-    def close(self):
+    def close(self) -> None:
         """
             closes the tcp socket
         """

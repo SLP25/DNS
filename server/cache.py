@@ -22,11 +22,10 @@ class CacheLine:
         limitDate   -> float (seconds after the epoch)
     """
     
-    def __init__(self, dnsEntry, limitDate):
+    def __init__(self, dnsEntry:DNSEntry, limitDate:float):
         self.dnsEntry = dnsEntry
         self.limitDate = limitDate
         
-#TODO: negative caching
 #TODO: hash tables/other optimizations?
 class Cache:
     """
@@ -39,24 +38,26 @@ class Cache:
         """
         self.lines = []
         
-    def add_entry(self, dnsEntry:DNSEntry):
+    def add_entry(self, dnsEntry:DNSEntry) -> None:
         """
         Adds a DNSEntry to the cache
         """
         self.lines.append(CacheLine(dnsEntry, time.time() + dnsEntry.ttl))
         
-    def answer_query(self, query:QueryInfo):
+    def answer_query(self, query:QueryInfo) -> QueryResponse:
         """
         Searches the valid entries to answer the query
         Returns a QueryResponse
         """
         cur_time = time.time()
         self.lines = list(filter(lambda l: l.limitDate < cur_time, self.lines))
-        return QueryResponse.from_entries(query, [l.dnsEntry for l in self.lines], False)
+        return QueryResponse.from_entries(query, [l.dnsEntry for l in self.lines])
     
-    def add_response(self, response:QueryResponse):
+    def add_response(self, response:QueryResponse) -> None:
         """
         Adds all DNSEntry's in the given response to the cache
         """
         for entry in itertools.chain(response.values, response.authorities, response.extra_values):
             self.add_entry(entry)
+            
+        #TODO: negative caching

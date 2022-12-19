@@ -5,7 +5,7 @@ Last Modification: Added documentation
 Date of Modification: 14/11/2022 11:45
 """
 
-from common.dnsEntry import EntryType
+from common.dnsEntry import DNSEntry, EntryType
 import common.utils as utils
 import itertools
 
@@ -19,7 +19,7 @@ class QueryInfo:
         self.name = name.lower()
         self.type = type
         
-    def __str__(self):
+    def __str__(self) -> str:
         """turn the query info into its string representation
 
         Returns:
@@ -37,24 +37,22 @@ class QueryResponse:
         authoritative   -> whether the response came directly from an authoritative server on the queried domain
     """
     
-    def __init__(self, values = [], authorities = [], extra_values = [], authoritative:bool = False):
+    def __init__(self,values:list[DNSEntry]=[],authorities:list[DNSEntry]=[],extra_values:list[DNSEntry]=[],final:bool=False,authoritative:bool=False):
         self.values = values
         self.authorities = authorities
         self.extra_values = extra_values
+        self.final = final or len(self.values) != 0
         self.authoritative = authoritative
     
     @staticmethod
-    def from_entries(query:QueryInfo, entries, authoritative:bool = False):
+    def from_entries(query:QueryInfo, entries:list[DNSEntry], final:bool=False, authoritative:bool = False) -> 'QueryResponse':
         """
         Searches the given DNSEntry's for a response to the given query and constructs a QueryResponse
         with the relevant values, authorities and extra_values and the specified authoritative flag
         """
         
-        #TODO: greatest priority or all? (enunciado diz all, lost diz priority)
         vals = list(filter(lambda e: e.type == query.type and e.parameter == query.name, entries))
         vals = [min(vals, key=lambda e: e.priority)] if vals else []
-
-        #TODO: check
 
         all_auths = {}
         for e in entries:
@@ -65,19 +63,26 @@ class QueryResponse:
         
         extra_dom = set(__get_relevant_domains__(vals) + [e.value for e in auths]) #dump in set to remove duplicates
         extras = list(utils.flat_map(lambda d: filter(lambda e: e.type == EntryType.A and e.parameter == d, entries), extra_dom))
-        
-        return QueryResponse(vals, auths, extras, authoritative)
+
+        return QueryResponse(vals, auths, extras, final, authoritative)
     
-    def positive(self):
+    @staticmethod
+    def from_top_servers(topServers:list[str]):
+        ttl = 1000000000
+        enumerated = enumerate(topServers, 1)
+        authorities = [DNSEntry('.', EntryType.NS, f'dns{i}.', ttl) for i,_ in enumerated]
+        extras = [DNSEntry(f'dns{i}.', EntryType.A, st, ttl) for i,st in enumerated]
+        return QueryResponse([], authorities, extras, False, False)
+    
+    def isFinal(self) -> bool:
         """
-        Whether the response contains answers to the query (responseCode == 0)
-        Note that even negative responses can provide useful information
-        through the authorities and extra_values fields
+        Whether the response provides a definitive anwer to the query
+        (responseCode is either 0 or 2).
         """
-        return self.values != []
+        return self.final
     
     
-def __get_relevant_domains__(entries):
+def __get_relevant_domains__(entries:list[DNSEntry]) -> list[str]:
     """gets the values of SOASP,NS and MX entries
 
     Args:

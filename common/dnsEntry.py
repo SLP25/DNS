@@ -31,13 +31,13 @@ class EntryType(Enum):
     MX = 9
     PTR = 10
     
-    def supports_priority(self):
+    def supports_priority(self) -> bool:
         """
         Whether DNSEntry's of this type support priority
         """
         return self == EntryType.NS or self == EntryType.A or self == EntryType.MX
     
-    def validate_parameter(self, parameter:str):
+    def validate_parameter(self, parameter:str) -> str:
         """
         Validates the given string as a parameter of a DNSEntry of this type
         If the given parameter is invalid, raises an InvalidDNSEntryException
@@ -57,7 +57,7 @@ class EntryType(Enum):
             parameter = parameter.lower()
         return parameter
     
-    def validate_value(self, value:str):
+    def validate_value(self, value:str) -> str:
         """
         Validates the given string as a value of a DNSEntry of this type
         If the received value is invalid, raises an InvalidDNSEntryException
@@ -81,7 +81,7 @@ class EntryType(Enum):
         return value
     
     @staticmethod
-    def get_all():
+    def get_all() -> list[str]:
         """
         Returns a list of all names of EntryTypes
         """
@@ -138,7 +138,7 @@ class DNSEntry:
         self.priority = priority
       
     @staticmethod
-    def from_str(line: str):
+    def from_str(line: str) -> 'DNSEntry':
         """ creates a dnsEntry from the string representation validating if the string is valid
 
         Args:
@@ -167,7 +167,7 @@ class DNSEntry:
         
         
     @staticmethod     
-    def from_text(parameter:str, type:str, value:str, ttl:str, priority:Optional[str] = None):
+    def from_text(parameter:str, type:str, value:str, ttl:str, priority:Optional[str] = None) -> 'DNSEntry':
         """
         Constructs a DNSEntry from string representations of each of the attributes
         If any of the attributes is deemed invalid, an InvalidDNSEntryException is raised
@@ -183,7 +183,7 @@ class DNSEntry:
         
         try:
             _type = EntryType[type]
-        except ValueError:
+        except KeyError:
             raise InvalidDNSEntryException("Unknown entry type")
         
         try:
@@ -195,7 +195,7 @@ class DNSEntry:
         return DNSEntry(parameter, _type, value, _ttl, _priority)
             
     @staticmethod
-    def from_bytes(data, pos = 0):
+    def from_bytes(data, pos = 0) -> tuple['DNSEntry',int]:
         """
         Constructs a DNSEntry from an array of bytes
         If the parsing fails, an InvalidDNSEntryException is thrown
@@ -204,6 +204,10 @@ class DNSEntry:
         parameter, pos = utils.bytes_to_string(data, pos)
         
         type = utils.bytes_to_int(data, 1, pos)
+        try:
+            _type = EntryType(type)
+        except ValueError:
+            raise InvalidDNSEntryException("Unknown entry type")
         pos += 1
         
         value, pos = utils.bytes_to_string(data, pos)
@@ -214,20 +218,20 @@ class DNSEntry:
         priority = utils.bytes_to_int(data, 1, pos)
         pos += 1
         
-        return (DNSEntry(parameter, type, value, ttl, priority), pos)
+        return (DNSEntry(parameter, _type, value, ttl, priority), pos)
 
-    def to_bytes(self):
+    def to_bytes(self) -> bytes:
         """
         Converts the current instance of DNSEntry to an array of bytes
-        """
-        ans = utils.string_to_bytes(self.parameter) + utils.int_to_bytes(self.type.value, 1) + utils.string_to_bytes(self.value) + utils.int_to_bytes(self.ttl.value, 4)
+        """        
+        ans = utils.string_to_bytes(self.parameter) + utils.int_to_bytes(self.type.value, 1) + utils.string_to_bytes(self.value) + utils.int_to_bytes(self.ttl, 4)
         
         if self.type.supports_priority():
-            ans += utils.int_to_bytes(self.priority.value, 1)
+            ans += utils.int_to_bytes(self.priority, 1)
         
         return ans
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Converts the current instance of DNSEntry to its string representation
         """

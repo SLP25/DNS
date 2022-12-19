@@ -33,7 +33,7 @@ class UDP:
             self.serverSocket.bind((self.localIP, self.localPort))
 
 
-    def receive(self):
+    def receive(self) -> tuple[bytes,str,int]:
         """
         Receive data
         If timeout is set, raises socket.timeout
@@ -41,7 +41,8 @@ class UDP:
         Returns:
 
         message : bytes                     -> The message received
-        address : (IP : String, port : int) -> The address of the sender
+        ip      : String                    -> The ip address of the sender
+        port    : int                       -> The port the massage was sent in
         """
         bytesAddressPair = self.serverSocket.recvfrom(self.bufferSize)
         message = bytesAddressPair[0]
@@ -49,13 +50,14 @@ class UDP:
 
         return message, ip, port
 
-    def send(self, message:str, ip:str, port:int):
+    def send(self, message:str, ip:str, port:int) -> None:
         """
         Send data
 
         Arguments:
 
         message : bytes                    -> The message to send through the socket
-        address : (IP : String, port: int) -> The address to send the message to
+        ip      : String                    -> The ip address to send the message to
+        port    : int                       -> The port the massage is to be sent through
         """
         self.serverSocket.sendto(message, (ip, port))

@@ -15,12 +15,15 @@ Date of Modification: 19/11/2022 18:10
 """
 
 
+from queue import Queue
 import threading
 import time
 import socket
 from common.tcpWrapper import TCPWrapper
-from common.utils import decompose_address
+import common.utils as utils
 from common.logger import LogMessage, LoggingEntryType
+from server.domain import Domain
+from server.serverData import ServerData
 
 #TODO: Handle errors (wrong status etc)
 #TODO: Proper timeout
@@ -33,7 +36,7 @@ Max zone transfer packet size in bytes
 maxSize = 1024
 
 #TODO: Validate request
-def processPacket(serverData, packet, ip, domain = None):
+def processPacket(serverData:ServerData, packet:ZoneTransferPacket, ip:str, domain:Domain = None) -> tuple[Domain, ZoneTransferPacket]:
     """
     Given a packet an SP received from an SS, computes the packet(s) to send back
     in response. Auxiliary function for zoneTransferSP
@@ -52,6 +55,7 @@ def processPacket(serverData, packet, ip, domain = None):
     #TODO: Only use domain in first request
     status = ZoneStatus.SUCCESS
     result = ""
+    utils.get_local_ip()(ip)
     if domain != None and not domain.is_authorized(ip):
         status = ZoneStatus.UNAUTHORIZED
     elif domain == None and packet.sequenceNumber.value in [0,2,4]:
@@ -83,7 +87,7 @@ def processPacket(serverData, packet, ip, domain = None):
     return (domain, \
             [ZoneTransferPacket(SequenceNumber(0), ZoneStatus.BAD_REQUEST, domain, "")])
 
-def zoneTransferSPClient(serverData, logger, conn, address):
+def zoneTransferSPClient(serverData:ServerData, logger:Queue, conn:socket, address:tuple[str,int]) -> None:
     """
     Handles the zone transfer process from the point of view of the SP,
     for a single SS client. Is called as a new thread by zoneTransferSP
@@ -115,7 +119,7 @@ def zoneTransferSPClient(serverData, logger, conn, address):
         clientConnected.shutdown(socket.SHUT_WR)
         clientConnected.close()
 
-def zoneTransferSP(serverData, logger, localIP, port):
+def zoneTransferSP(serverData:ServerData, logger:Queue, localIP:str, port:int) -> None:
     """
     Function implementing the zone transfer protocol from the point of view of an
     SP.
@@ -142,7 +146,7 @@ def zoneTransferSP(serverData, logger, localIP, port):
         tcpSocket.close()
 
 
-def getServerVersionNumber(tcpSocket, domain):
+def getServerVersionNumber(tcpSocket:TCPWrapper, domain:str) -> int:
     """
     Queries the SP about the version number of the database of the given domain.
     Auxiliary function to zoneTransferSS
@@ -163,7 +167,7 @@ def getServerVersionNumber(tcpSocket, domain):
     return receivedPacket.data
 
 
-def getDomainNumberEntries(tcpSocket, domain):
+def getDomainNumberEntries(tcpSocket:socket, domain:str) -> int:
     """
     Queries the SP about the number of entries to expect for the given domain. Auxiliary function to zoneTransferSS
 
@@ -183,7 +187,7 @@ def getDomainNumberEntries(tcpSocket, domain):
     return receivedPacket.data
 
 
-def acknowledgeNumberEntries(tcpSocket, domain, entries):
+def acknowledgeNumberEntries(tcpSocket:socket, domain:str, entries:int) -> None:
     """
     Acknowledges the expected number of entries for a domain to the SP. Auxiliary function to zoneTransferSS
 
@@ -196,7 +200,7 @@ def acknowledgeNumberEntries(tcpSocket, domain, entries):
     sentPacket = ZoneTransferPacket(SequenceNumber(4), ZoneStatus(0), domain, entries)
     tcpSocket.write(str(sentPacket).encode())
 
-def getAllEntries(tcpSocket, domain, entries):
+def getAllEntries(tcpSocket:socket, domain:Domain, entries:int) -> None:
     """
     Receives all entries for the given domain from the SP. Auxiliary function to zoneTransferSS
 
@@ -220,7 +224,7 @@ def getAllEntries(tcpSocket, domain, entries):
     domain.set_entries(newEntries)
 
 
-def confirmEntries(tcpSocket):
+def confirmEntries(tcpSocket:socket) -> None:
     """
     Confirms to the SP that it has received the expected number of entries. 
     Auxiliary function to zoneTransferSS
@@ -233,7 +237,7 @@ def confirmEntries(tcpSocket):
     tcpSocket.write(str(sentPacket).encode())
 
 
-def receiveEndOfTransfer(tcpSocket):
+def receiveEndOfTransfer(tcpSocket:socket) -> None:
     """
     Receives the end of transfer packet from the SP. Auxiliary function to zoneTransferSS
 
@@ -243,7 +247,7 @@ def receiveEndOfTransfer(tcpSocket):
     """
     tcpSocket.recv(maxSize)
 
-def zoneTransferSS(serverData, logger, domain_name):
+def zoneTransferSS(serverData:ServerData, logger:Queue, domain_name:str) -> None:
     """
     Function implementing the zone transfer protocol from the point of view of an
     SS.
@@ -256,9 +260,9 @@ def zoneTransferSS(serverData, logger, domain_name):
     while True:
         try:
             tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            tcp.connect(decompose_address(domain.primaryServer))
+            tcp.connect(utils.decompose_address(domain.primaryServer))
             tcpSocket = TCPWrapper(tcp, ZoneTransferPacket.split_messages, maxSize)
-
+            
             versionNumber = getServerVersionNumber(tcpSocket, domain.name)
 
             #There is no new version of the database available
@@ -283,7 +287,7 @@ def zoneTransferSS(serverData, logger, domain_name):
             tcpSocket.shutdown(socket.SHUT_WR)
             tcpSocket.close()
             serverData.set_domain(domain.name, domain)
-            
+
         # Wait SOAREFRESH seconds before refreshing
         # database
         time.sleep(domain.get_refresh())

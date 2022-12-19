@@ -8,7 +8,7 @@ Date of Modification: 14/11/2022 14:58
 
 from enum import Enum
 import math
-from typing import List, Optional
+from typing import Iterable, List, Optional
 from common.query import QueryInfo
 from common.query import QueryResponse
 from .exceptions import InvalidConfigFileException, InvalidTopServersException, NoConfigFileException
@@ -36,7 +36,7 @@ class ConfigType(Enum):
     LG = 5
     
     @staticmethod
-    def get_all():
+    def get_all() -> list[str]:
         """
         Returns a list containing the names of all ConfigType's
         """
@@ -62,7 +62,7 @@ class ServerData:
         """
         
         self.logger=logger
-        self.domains = OrderedDict()        #name:domain  #TODO: separar em primary e seconday?
+        self.domains = OrderedDict()        #name:domain            separar em primary e seconday?
         self.defaultServers = OrderedDict() #domain name:ip[:port]
         self.topServers = []                #ips
         self.loggers = []                   #file paths
@@ -86,10 +86,10 @@ class ServerData:
         except FileNotFoundError:
             raise NoConfigFileException("Could not open " + filePath)
     
-    def set_domain(self, domain_name, domain):
+    def set_domain(self, domain_name:str, domain:Domain) -> None:
         self.domains[domain_name] = domain
     
-    def replaceDomainEntries(self, domain:str, new_entries:List[DNSEntry]):
+    def replaceDomainEntries(self, domain:str, new_entries:list[DNSEntry]) -> None:
         """
         Replaces the entries of the given secondary domain
         This method is called during zone transfers
@@ -102,7 +102,7 @@ class ServerData:
         self.get_domain(domain, False).set_entries(new_entries)
         
         
-    def get_first_servers(self, domain_name:str):
+    def get_first_servers(self, domain_name:str) -> list[str]:
         """
         Determines the first servers to ask if a query can't be answered locally. This is
         the top servers if no default domain is set, or the default server if it is
@@ -111,7 +111,7 @@ class ServerData:
         Arguments:
             domain_name -> A valid domain name (matches DOMAIN or FULL_DOMAIN). Case and termination insensitive
         """
-        matches = filter(lambda d: d != utils.get_local_ip() and utils.is_subdomain(domain_name, d.name), self.defaultServers)
+        matches = filter(lambda d: d != '127.0.0.1' and utils.is_subdomain(domain_name, d.name), self.defaultServers)
         ans = next(matches, None)
 
         if ans:
@@ -119,7 +119,7 @@ class ServerData:
         else:
             return self.topServers
         
-    def answers_query(self, d:str):
+    def answers_query(self, d:str) -> bool:
         """
         Determines whether the current config allows the server to answer a query
         on the given domain. This is true if either no default servers were indicated,
@@ -131,7 +131,7 @@ class ServerData:
 
         return len(self.defaultServers) == 0
         
-    def answer_query(self, query:QueryInfo):
+    def answer_query(self, query:QueryInfo) -> QueryResponse:
         """
         Attempts to answer the given query using the stored domains (SP and SS)
         Returns a QueryResponse
@@ -141,12 +141,12 @@ class ServerData:
         
         for d in matches:
             ans = d.answer_query(query)
-            if ans.positive():
+            if ans.isFinal():
                 return ans
 
         return QueryResponse()
 
-    def get_domain(self, domain_name:str, primary:Optional[bool] = None, create:bool = False):
+    def get_domain(self, domain_name:str, primary:Optional[bool] = None, create:bool = False) -> Domain:
         """
         Fetches the domain with the given domain name and specified primary status
         Returns a Domain, or raises an error if no such domain exists
@@ -179,19 +179,19 @@ class ServerData:
          
         return d
     
-    def get_primary_domains(self):
+    def get_primary_domains(self) -> Iterable[Domain]:
         """
         Returns a list containing all primary domains (Domain) in the current instance
         """
         return filter(lambda d: d.primary, self.domains.values())
 
-    def get_secondary_domains(self):
+    def get_secondary_domains(self) -> Iterable[Domain]:
         """
         Returns a list containing all secondary domains (Domain) in the current instance
         """
         return list(filter(lambda d: isinstance(d, SecondaryDomain), self.domains.values()))
 
-    def __parseLine__(self, line):
+    def __parseLine__(self, line:str) -> None:
         if re.search(utils.COMMENT_LINE, line):
             return
 
