@@ -196,7 +196,12 @@ def bytes_to_int(bytes:bytes, no_bytes:int, start:int = 0) -> int:
     Given an array of bytes, returns the unsigned integer it represents
     Starts the parsing at the specified position and ends after no_bytes bytes
     """
-    return int.from_bytes(bytes[start:(start+no_bytes)], 'little')
+    aux = bytes[start:(start+no_bytes)]
+    
+    if len(aux) == 0:
+        raise ValueError("Empty bytes array")
+    
+    return int.from_bytes(aux, 'little')
 
 def string_to_bytes(string:str) -> bytes:
     """

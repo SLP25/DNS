@@ -215,8 +215,11 @@ class DNSEntry:
         ttl = utils.bytes_to_int(data, 4, pos)
         pos += 4
         
-        priority = utils.bytes_to_int(data, 1, pos)
-        pos += 1
+        if _type.supports_priority():
+            priority = utils.bytes_to_int(data, 1, pos)
+            pos += 1
+        else:
+            priority = None
         
         return (DNSEntry(parameter, _type, value, ttl, priority), pos)
 

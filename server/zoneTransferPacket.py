@@ -14,13 +14,16 @@ documentation for more details)
 Details regarding the zone transfer protocol can be found in the documentation for
 zoneTransfer.py
 
-Last modification: Add from_str
-Date of modification: 19/11/2022 18:10
+Last modification: Added support to binary
+Date of modification: 27/12/2022 18:10
 '''
 
 from enum import Enum
+from pprint import pprint
 import re
+import traceback
 from common.dnsEntry import DNSEntry
+import common.utils as utils
 
 from .exceptions import InvalidZoneTransferPacketException
 
@@ -35,8 +38,6 @@ class SequenceNumber(Enum):     #TODO: trocar SequenceNumber(x) por SequenceNumb
     SP_NUMBER_ENTRIES = 3, 'SP sends the number of entries in the database for the domain'
     SS_NUMBER_ENTRIES = 4, 'SS acknowledges the number of entries'
     SP_DNS_ENTRY = 5, 'SP is sending an entry of the database for the domain'
-    SS_ACKNOWLEDGE = 6, 'SS confirms having received all database entries'
-    SP_ACKNOWLEDGE = 7, 'SP acknowledges and zone transfer terminates'
      
     '''
     SS_VERSION_NUMBER = 0
@@ -45,8 +46,6 @@ class SequenceNumber(Enum):     #TODO: trocar SequenceNumber(x) por SequenceNumb
     SP_NUMBER_ENTRIES = 3
     SS_NUMBER_ENTRIES = 4
     SP_DNS_ENTRY = 5
-    SS_ACKNOWLEDGE = 6
-    SP_ACKNOWLEDGE = 7
 
 class ZoneStatus(Enum):     #TODO: same provavelmente
     '''
@@ -94,10 +93,13 @@ class ZoneTransferPacket:
         pass
     
     def get_domain(self):
-        return self.domain
+        if self.sequenceNumber == SequenceNumber(0):
+            return self.data
+        else:
+            return self.domain
 
     @staticmethod
-    def split_messages(buffer):
+    def split_messages(buffer:bytes) -> tuple[bytes,bytes]:
         """
         Splits the content of the buffer in the first message in it and
         the remaining of the buffer. Works like splitting a list in Haskell by 
@@ -112,17 +114,23 @@ class ZoneTransferPacket:
             (bytes | None, bytes): (The first message (None if not exists), the
             remaining buffer)
         """
-        #TODO: Binary
-        split = buffer.decode().split("\n", 1)
+        if utils.debug:
+            split = buffer.decode().split("\n", 1)
 
-        if len(split) == 1:
-            return (None, buffer)
-        
-        return (split[0], split[1])
-        
+            if len(split) == 1:
+                return (None, buffer)
+            
+            return (split[0].encode(), split[1].encode())
+        else:
+            try:
+                (obj, length) = ZoneTransferPacket.from_bytes(buffer)
+                return (buffer[:length], buffer[length:])
+            except InvalidZoneTransferPacketException:
+                print("No packets could be read from the buffer")
+                return (None, buffer)
     
     @staticmethod
-    def from_str(string):
+    def from_str(string:str) -> 'ZoneTransferPacket':
         '''
         Creates a ZoneTransferPacket from a given string.
         
@@ -138,7 +146,7 @@ class ZoneTransferPacket:
         '''
         search = re.search("(\(([01234567])\,([012])\,(.*)\))", string)
         if search is None:
-            raise InvalidZoneTransferPacketException("String " + string + " does not follow format")
+            raise InvalidZoneTransferPacketException(f'String "{string}" does not follow format')
 
         # The groups for the regex are: 0 -> whole thing 1-> whole thing again 2-> first match,
         # hence starting from 2 instead of 1
@@ -166,7 +174,7 @@ class ZoneTransferPacket:
             data = int(search.group(4))
         return ZoneTransferPacket(sequenceNumber, status, domain, data)
 
-    def __str__(self):
+    def __str__(self) -> str:
         '''
         Converts a zone transfer packet to a string.
         
@@ -182,3 +190,59 @@ class ZoneTransferPacket:
         return "({sequenceNumber},{status},{data})\n".format(
             sequenceNumber = self.sequenceNumber.value,
             status = self.status.value, data = str(self.data) if self.sequenceNumber.value != 5 else f"({str(self.data[0])},{str(self.data[1])})")
+        
+        
+    def to_bytes(self) -> bytes:
+        
+        header = utils.int_to_bytes(self.sequenceNumber.value << 2 | self.status.value, 1)
+        
+        match self.sequenceNumber:
+            case SequenceNumber.SS_VERSION_NUMBER:
+                data = utils.string_to_bytes(self.data)
+            case SequenceNumber.SP_VERSION_NUMBER:
+                data = utils.int_to_bytes(self.data, 1)
+            case SequenceNumber.SS_DOMAIN_NAME:
+                data = utils.string_to_bytes(self.data)
+            case SequenceNumber.SP_NUMBER_ENTRIES:
+                data = utils.int_to_bytes(self.data, 2)
+            case SequenceNumber.SP_DNS_ENTRY:
+                data = utils.int_to_bytes(self.data[0], 2) + self.data[1].to_bytes()
+            case _:
+                data = b''
+        
+        return header + data
+        
+    @staticmethod
+    def from_bytes(bytes:bytes, pos:int = 0) -> tuple['ZoneTransferPacket',int]:
+        try:
+            header = utils.bytes_to_int(bytes, 1, pos)
+            pos += 1
+            
+            sequenceNumber = SequenceNumber((header & 0b11100) >> 2)
+            status = ZoneStatus(header & 0b11)
+            domain = None
+            data = None
+            
+            match sequenceNumber:
+                case SequenceNumber.SS_VERSION_NUMBER:
+                    data, pos = utils.bytes_to_string(bytes, pos)
+                    domain = data
+                case SequenceNumber.SP_VERSION_NUMBER:
+                    data = utils.bytes_to_int(bytes, 1, pos)
+                    pos += 1
+                case SequenceNumber.SS_DOMAIN_NAME:
+                    data, pos = utils.bytes_to_string(bytes, pos)
+                case SequenceNumber.SP_NUMBER_ENTRIES:
+                    data = utils.bytes_to_int(bytes, 2, pos)
+                    pos += 2
+                case SequenceNumber.SP_DNS_ENTRY:
+                    a = utils.bytes_to_int(bytes, 2, pos)
+                    pos += 2
+                    
+                    b, pos = DNSEntry.from_bytes(bytes, pos)
+                    data = (a, b)
+
+            return ZoneTransferPacket(sequenceNumber, status, domain, data), pos
+        except:
+            print(traceback.format_exc())
+            raise InvalidZoneTransferPacketException("Error parsing zone transfer packet")

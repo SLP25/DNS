@@ -55,14 +55,14 @@ class Server:
         '''
         From a DNSMessage, returns the bytes to be sent through the socket
         '''
-        return str(msg).encode() if debug else msg.to_bytes()
+        return str(msg).encode() if utils.debug else msg.to_bytes()
     
     def decode_msg(self, bytes:bytes) -> DNSMessage:
         '''
         From the bytes received from the socket, returns the encoded DNSMessage
         If the bytes don't correspond to a valid DNSMessage, an InvalidDNSMessageException is raised
         '''
-        if debug:
+        if utils.debug:
             return DNSMessage.from_string(bytes.decode())
         else:
             (msg, _) = DNSMessage.from_bytes(bytes)
@@ -209,7 +209,7 @@ class Server:
         for proc in procs:
             proc.start()
 
-        logger.put(LogMessage(LoggingEntryType.ST, utils.get_local_ip(), ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', debug]))
+        logger.put(LogMessage(LoggingEntryType.ST, utils.get_local_ip(), ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', utils.debug]))
         self.server = UDP(localPort=port,binding = True)
 
         try:
@@ -249,8 +249,7 @@ def main() -> None:
     -d : If the server is in debug mode
     '''
     MyManager.register('ServerData', ServerData)
-    global debug
-    debug = "-d" in sys.argv
+    utils.debug = "-d" in sys.argv
     resolver = "-r" in sys.argv
 
     global port
@@ -265,7 +264,7 @@ def main() -> None:
     global logger
     m = multiprocessing.Manager()
     logger=m.Queue()
-    p=Process(target=logger_process,args=(logger, debug))
+    p=Process(target=logger_process,args=(logger, utils.debug))
     p.start()
 
     #Config

@@ -35,7 +35,7 @@ class TCPWrapper:
         self.address = address
         self.splitFunction = splitFunction
         self.bufferSize = bufferSize
-        self.buffer = "".encode()
+        self.buffer = b''
         
     def read(self) -> bytes:
         """Returns the oldest message in the socket.
@@ -62,8 +62,8 @@ class TCPWrapper:
             self.buffer = self.buffer + addedBuffer
             return self.read()
         
-        self.buffer = buffer.encode()
-        return message.encode()
+        self.buffer = buffer
+        return message
     
     def write(self, message:bytes) -> None:
         """
