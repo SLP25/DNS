@@ -339,9 +339,8 @@ def __parse_entries__(data:bytes, expected:int, pos:int = 0) -> tuple[list[DNSEn
     ans = []
     
     for i in range(0, expected):
-        entry, aux = DNSEntry.from_bytes(data, pos)
+        entry, pos = DNSEntry.from_bytes(data, pos)
         ans.append(entry)
-        pos += aux
         
     return (ans, pos)
 

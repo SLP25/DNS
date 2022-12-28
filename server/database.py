@@ -97,7 +97,7 @@ class Database:
         ttl = match.group('ttl')
         priority = match.group('pr')
         
-        if type in ['SOASP', 'SOAADMIN', 'SOASERIAL', 'SOAREFRESH', 'SOARETRY', 'SOAEXPIRE', 'NS', 'MX', 'A']:
+        if type in ['SOASP', 'SOAADMIN', 'SOASERIAL', 'SOAREFRESH', 'SOARETRY', 'SOAEXPIRE', 'NS', 'MX', 'A', 'PTR']:
             parameter = self.__complete_domain__(parameter)
         
         if type in ['SOASP', 'NS', 'PTR']:

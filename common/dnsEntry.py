@@ -44,10 +44,10 @@ class EntryType(Enum):
         Returns the validated parameter (this may be different from the received parameter if a
         domain name is expected; in that case, the domain name is normalized - see utils.normalize_domain())
         """
-        if self == EntryType.PTR:
-            if not re.search(f'^{utils.IP_ADDRESS}$', parameter):
-                raise InvalidDNSEntryException(f'{parameter} is not a valid IPv4 address')
-        elif self == EntryType.CNAME:
+        #if self == EntryType.PTR:
+        #    if not re.search(f'^{utils.IP_ADDRESS}$', parameter):
+        #        raise InvalidDNSEntryException(f'{parameter} is not a valid IPv4 address')
+        if self == EntryType.CNAME:
             if not re.search(f'^{utils.DOMAIN}$', parameter):
                 raise InvalidDNSEntryException(f'{parameter} is not a valid domain name')
             parameter = parameter.lower()
@@ -201,19 +201,23 @@ class DNSEntry:
         If the parsing fails, an InvalidDNSEntryException is thrown
         Returns a pair containing the dnsEntry and the number of consumed bytes
         """
+
         parameter, pos = utils.bytes_to_string(data, pos)
-        
+
         type = utils.bytes_to_int(data, 1, pos)
+
         try:
             _type = EntryType(type)
         except ValueError:
             raise InvalidDNSEntryException("Unknown entry type")
         pos += 1
-        
+
         value, pos = utils.bytes_to_string(data, pos)
-        
+
         ttl = utils.bytes_to_int(data, 4, pos)
+
         pos += 4
+
         
         if _type.supports_priority():
             priority = utils.bytes_to_int(data, 1, pos)

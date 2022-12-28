@@ -51,9 +51,11 @@ class TCPWrapper:
         result = self.splitFunction(self.buffer)
         message = result[0]
         buffer = result[1]
-        
+   
         if message is None:
+
             addedBuffer = self.conn.recv(self.bufferSize)
+
             
             # There is nothing more to read
             if addedBuffer == b'':

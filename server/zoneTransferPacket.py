@@ -19,7 +19,6 @@ Date of modification: 27/12/2022 18:10
 '''
 
 from enum import Enum
-from pprint import pprint
 import re
 import traceback
 from common.dnsEntry import DNSEntry
@@ -126,7 +125,6 @@ class ZoneTransferPacket:
                 (obj, length) = ZoneTransferPacket.from_bytes(buffer)
                 return (buffer[:length], buffer[length:])
             except InvalidZoneTransferPacketException:
-                print("No packets could be read from the buffer")
                 return (None, buffer)
     
     @staticmethod
@@ -193,14 +191,12 @@ class ZoneTransferPacket:
         
         
     def to_bytes(self) -> bytes:
-        
         header = utils.int_to_bytes(self.sequenceNumber.value << 2 | self.status.value, 1)
-        
         match self.sequenceNumber:
             case SequenceNumber.SS_VERSION_NUMBER:
                 data = utils.string_to_bytes(self.data)
             case SequenceNumber.SP_VERSION_NUMBER:
-                data = utils.int_to_bytes(self.data, 1)
+                data = utils.int_to_bytes(self.data, 4)
             case SequenceNumber.SS_DOMAIN_NAME:
                 data = utils.string_to_bytes(self.data)
             case SequenceNumber.SP_NUMBER_ENTRIES:
@@ -209,7 +205,7 @@ class ZoneTransferPacket:
                 data = utils.int_to_bytes(self.data[0], 2) + self.data[1].to_bytes()
             case _:
                 data = b''
-        
+                
         return header + data
         
     @staticmethod
@@ -217,9 +213,9 @@ class ZoneTransferPacket:
         try:
             header = utils.bytes_to_int(bytes, 1, pos)
             pos += 1
-            
             sequenceNumber = SequenceNumber((header & 0b11100) >> 2)
             status = ZoneStatus(header & 0b11)
+
             domain = None
             data = None
             
@@ -228,8 +224,8 @@ class ZoneTransferPacket:
                     data, pos = utils.bytes_to_string(bytes, pos)
                     domain = data
                 case SequenceNumber.SP_VERSION_NUMBER:
-                    data = utils.bytes_to_int(bytes, 1, pos)
-                    pos += 1
+                    data = utils.bytes_to_int(bytes, 4, pos)
+                    pos += 4
                 case SequenceNumber.SS_DOMAIN_NAME:
                     data, pos = utils.bytes_to_string(bytes, pos)
                 case SequenceNumber.SP_NUMBER_ENTRIES:

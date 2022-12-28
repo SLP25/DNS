@@ -41,7 +41,7 @@ class QueryResponse:
         self.values = values
         self.authorities = authorities
         self.extra_values = extra_values
-        self.final = final or len(self.values) != 0
+        self.final = final or len(self.values) != 0  or len(self.authorities) != 0
         self.authoritative = authoritative
     
     @staticmethod
@@ -56,7 +56,7 @@ class QueryResponse:
 
         all_auths = {}
         for e in entries:
-            if e.type == EntryType.NS and utils.is_subdomain(e.parameter, query.name):
+            if e.type == EntryType.NS and utils.is_subdomain(query.name, e.parameter):
                 if e.parameter not in all_auths or e.priority < all_auths[e.parameter].priority:
                     all_auths[e.parameter] = e
         auths = all_auths.values()

@@ -12,24 +12,23 @@ def encode_msg(msg:DNSMessage) -> bytes:
     '''
     return str(msg).encode() if debug else msg.to_bytes()
 
-def decode_msg(bytes:bytes) -> DNSMessage:
+def decode_msg(b:bytes) -> DNSMessage:
     '''
     From the bytes received from the socket, returns the encoded DNSMessage
     If the bytes don't correspond to a valid DNSMessage, an InvalidDNSMessageException is raised
     '''
     if debug:
-        return DNSMessage.from_string(bytes.decode())
+        return DNSMessage.from_string(b.decode())
     else:
-        (msg, _) = DNSMessage.from_bytes(bytes)
+        (msg, _) = DNSMessage.from_bytes(b)
         return msg
 
 args = ' '.join(sys.argv[1:4])
-match = re.search(f'{utils.IP_MAYBE_PORT} (?P<d>{utils.FULL_DOMAIN}) (?P<t>{ENTRY_TYPE})', args)
+match = re.search(f'{utils.IP_MAYBE_PORT} (?P<d>[^\s]+) (?P<t>{ENTRY_TYPE})', args)
 if not match:
     raise ValueError("Invalid format for program args")
 recursive = '-r' in sys.argv
 debug = '-n' not in sys.argv    #by default, runs in debug mode
-
 ip = match.group('ip')
 port = int(match.group('port')) if match.group('port') else utils.DEFAULT_PORT
 

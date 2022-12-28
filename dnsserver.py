@@ -116,6 +116,7 @@ class Server:
         """
         for a in addresses:
             ans = self.query(a, query, recursive)
+
             if ans:
                 return ans
 
@@ -133,7 +134,6 @@ class Server:
         Given a query and whether to run recursively, returns an
         answering QueryResponse or None if it isn't possible to answer
         """
-
         ans = self.config.answer_query(query)   #try database
         if ans.isFinal():
             return ans
@@ -142,20 +142,21 @@ class Server:
         if ans.isFinal():
             return ans
 
-        if not recursive:                       #give up :)
+        if not recursive:   #give up :)
             return QueryResponse.from_top_servers(self.config.get_first_servers(query.name))
 
         #start search from the root/default servers
         next_dns:list[str] = self.config.get_first_servers(query.name)
         prev_ans:Optional[QueryResponse] = None
-
         while True:
             ans = self.query_any(next_dns, query, recursive)
-            if not ans:                         #can't contact anyone :(
+            if not ans:   
+                #can't contact anyone :(
                 return prev_ans
 
             self.cache.add_response(ans)
-            if ans.isFinal():                   #success!
+
+            if ans.isFinal():  #success!
                 return ans
 
             prev_ans = ans  #store previous answer
@@ -192,6 +193,7 @@ class Server:
             return None
         
         logger.put(LogMessage(LoggingEntryType.QE, address, [msg], msg.query.name))
+
         ans = self.answer_query(msg.query, msg.recursive and self.supports_recursive)
         if ans:
             resp = msg.generate_response(ans, self.supports_recursive)
