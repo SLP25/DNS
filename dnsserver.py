@@ -20,7 +20,7 @@ from typing import Iterable, Optional
 
 from common.logger import logger_process, LoggingEntryType,LogCreate,LogMessage
 from multiprocessing import Queue,Process
-
+from server.network import Network
 from common.query import QueryResponse
 from server.cache import Cache
 from server.zoneTransfer import zoneTransferSP, zoneTransferSS
@@ -30,6 +30,14 @@ from common.dnsMessage import DNSMessage, QueryInfo
 from server.serverData import ServerData
 import common.utils as utils
 import sys
+
+def processMessage(queue, msg, ip, p):
+    global server
+    ans = server.process_message(msg, ip, p)
+    print(server)
+    if ans:
+        print(ans)
+        queue.put((server.encode_msg(ans),ip,p), block=False)
 
 class MyManager(BaseManager):
     pass
@@ -48,7 +56,6 @@ class Server:
         self.config = self.manager.ServerData(config_file, logger)
         self.resolver = resolver
         self.supports_recursive = resolver
-
         self.cache = Cache()
         
     def encode_msg(self, msg:DNSMessage) -> bytes:
@@ -211,15 +218,19 @@ class Server:
         for proc in procs:
             proc.start()
 
+
         logger.put(LogMessage(LoggingEntryType.ST, utils.get_local_ip(), ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', utils.debug]))
-        self.server = UDP(localPort=port,binding = True)
+        #self.server = UDP(localPort=port,binding = True)
 
         try:
-            while(True):
-                msg, ip, p = self.server.receive()
-                ans = self.process_message(msg, ip, p)
-                if ans:
-                    self.server.send(self.encode_msg(ans), ip, p)
+            print("TEMOS")
+            self.network = Network(port, True, processMessage)
+            self.network.run()
+            #while(True):
+            #    msg, ip, p = self.server.receive()
+            #    ans = self.process_message(msg, ip, p)
+            #    if ans:
+            #       self.server.send(self.encode_msg(ans), ip, p)
         except Exception as e:
             logger.put(LoggingEntryType.SP, utils.get_local_ip(), ['Unexpected termination:', e])
     
@@ -271,6 +282,7 @@ def main() -> None:
 
     #Config
     config_file = extract_flag("-c")
+    global server
     server = Server(resolver, config_file)
 
     server.run()

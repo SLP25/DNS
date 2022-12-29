@@ -44,7 +44,9 @@ class UDP:
         ip      : String                    -> The ip address of the sender
         port    : int                       -> The port the massage was sent in
         """
+        print("AQUI DENTRO")
         bytesAddressPair = self.serverSocket.recvfrom(self.bufferSize)
+        print("OLA")
         message = bytesAddressPair[0]
         ip, port = bytesAddressPair[1]
 
