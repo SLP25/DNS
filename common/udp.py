@@ -45,6 +45,7 @@ class UDP:
         port    : int                       -> The port the massage was sent in
         """
         bytesAddressPair = self.serverSocket.recvfrom(self.bufferSize)
+
         message = bytesAddressPair[0]
         ip, port = bytesAddressPair[1]
 

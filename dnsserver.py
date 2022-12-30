@@ -20,7 +20,7 @@ from typing import Iterable, Optional
 
 from common.logger import logger_process, LoggingEntryType,LogCreate,LogMessage
 from multiprocessing import Queue,Process
-
+from server.network import Network
 from common.query import QueryResponse
 from server.cache import Cache
 from server.zoneTransfer import zoneTransferSP, zoneTransferSS
@@ -30,6 +30,15 @@ from common.dnsMessage import DNSMessage, QueryInfo
 from server.serverData import ServerData
 import common.utils as utils
 import sys
+
+def processMessage(id:int, sendQueue : Queue, receiveQueue : Queue, msg: bytes, ip:str, p:int):
+    global server
+    global tag
+    tag = id
+    ans = server.process_message(msg, ip, p, sendQueue, receiveQueue)
+    print(ans)
+    if ans:
+        sendQueue.put((server.encode_msg(ans),ip,p, False), block=False)
 
 class MyManager(BaseManager):
     pass
@@ -48,7 +57,6 @@ class Server:
         self.config = self.manager.ServerData(config_file, logger)
         self.resolver = resolver
         self.supports_recursive = resolver
-
         self.cache = Cache()
         
     def encode_msg(self, msg:DNSMessage) -> bytes:
@@ -77,28 +85,32 @@ class Server:
         '''
         return self.resolver or self.config.answers_query(query.name)
 
-    def query(self, address:str, query:QueryInfo, recursive:bool) -> Optional[QueryResponse]:
+    def query(self, address:str, query:QueryInfo, recursive:bool, sq, rq) -> Optional[QueryResponse]:
         """
         Queries the dns server in address with the given query
         Returns the QueryResponse, or None if the request timed out or response failed to parse
         """
+        print("HELLO")
         ip, port = utils.decompose_address(address)
-        udp = UDP(timeout=timeout)
+        #udp = UDP(timeout=timeout)
         msg = DNSMessage.from_query(query, recursive)
         
         logger.put(LogMessage(LoggingEntryType.QE, address, [msg],query.name))
 
         try:
-            data = self.encode_msg(msg)
-            udp.send(data, ip, port)
-            bytes, _, _ = udp.receive()
+            global tag
+            print(f"MM {tag}")
+            data = sq.put((self.encode_msg(msg), ip, port, tag))#self.encode_msg(msg)
+            print("AQUI: " + ip)
+            #udp.send(data, ip, port)
+            bytes, _, _ = rq.get() #udp.receive()
+            print("RECEIVED")
         except socket.timeout:
             logger.put(LogMessage(LoggingEntryType.TO, address, ['DNS query timed out'],query.name))
             return None
 
         try:
             ans = self.decode_msg(bytes)
-
             if ans.is_query():
                 logger.put(LogMessage(LoggingEntryType.ER, address, ["The received DNSMessage isn't a response: ", ans],query.name))
                 return None
@@ -109,13 +121,14 @@ class Server:
             logger.put(LogMessage(LoggingEntryType.ER, address, [e], query.name))
             return None
 
-    def query_any(self, addresses, query:QueryInfo, recursive:bool) -> Optional[QueryResponse]:
+    def query_any(self, addresses, query:QueryInfo, recursive:bool, sq, rq) -> Optional[QueryResponse]:
         """
         Queries the dns servers listed in addresses with the given query
         Returns the QueryResponse of the first answer, or None if none answered
         """
+        print("MEMBRO")
         for a in addresses:
-            ans = self.query(a, query, recursive)
+            ans = self.query(a, query, recursive, sq, rq)
 
             if ans:
                 return ans
@@ -129,7 +142,7 @@ class Server:
         return map(lambda e: e.value, ans.values) if ans else []
 
     #TODO: response code 2 when domain doesn't exist (flag A)
-    def answer_query(self, query:QueryInfo, recursive:bool) -> Optional[QueryResponse]:
+    def answer_query(self, query:QueryInfo, recursive:bool, sq, rq) -> Optional[QueryResponse]:
         """
         Given a query and whether to run recursively, returns an
         answering QueryResponse or None if it isn't possible to answer
@@ -141,15 +154,16 @@ class Server:
         ans = self.cache.answer_query(query)    #try cache
         if ans.isFinal():
             return ans
-
+        print("OLA")
         if not recursive:   #give up :)
             return QueryResponse.from_top_servers(self.config.get_first_servers(query.name))
-
+        print("AH NO")
         #start search from the root/default servers
         next_dns:list[str] = self.config.get_first_servers(query.name)
         prev_ans:Optional[QueryResponse] = None
+        print(next_dns)
         while True:
-            ans = self.query_any(next_dns, query, recursive)
+            ans = self.query_any(next_dns, query, recursive, sq, rq)
             if not ans:   
                 #can't contact anyone :(
                 return prev_ans
@@ -167,7 +181,7 @@ class Server:
             auths = [e.value for e in ans.authorities]                              #next, get the hostname of their dns
             next_dns = utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
 
-    def process_message(self, message:bytes, ip:str, port:int) -> Optional[DNSMessage]:
+    def process_message(self, message:bytes, ip:str, port:int, sq, rq) -> Optional[DNSMessage]:
         '''
         Processes the received message from the given address
         Returns a response message, or None if the query shouldn't be answered (see answers_query())
@@ -194,7 +208,7 @@ class Server:
         
         logger.put(LogMessage(LoggingEntryType.QE, address, [msg], msg.query.name))
 
-        ans = self.answer_query(msg.query, msg.recursive and self.supports_recursive)
+        ans = self.answer_query(msg.query, msg.recursive and self.supports_recursive, sq, rq)
         if ans:
             resp = msg.generate_response(ans, self.supports_recursive)
             logger.put(LogMessage(LoggingEntryType.RP, address, [resp], msg.query.name))
@@ -211,15 +225,17 @@ class Server:
         for proc in procs:
             proc.start()
 
-        logger.put(LogMessage(LoggingEntryType.ST, utils.get_local_ip(), ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', utils.debug]))
-        self.server = UDP(localPort=port,binding = True)
 
-        try:
-            while(True):
-                msg, ip, p = self.server.receive()
-                ans = self.process_message(msg, ip, p)
-                if ans:
-                    self.server.send(self.encode_msg(ans), ip, p)
+        logger.put(LogMessage(LoggingEntryType.ST, utils.get_local_ip(), ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', utils.debug]))
+        #self.server = UDP(localPort=port,binding = True)
+        try:  
+            self.network = Network(port, True, processMessage)          
+            self.network.run()
+            #while(True):
+            #    msg, ip, p = self.server.receive()
+            #    ans = self.process_message(msg, ip, p)
+            #    if ans:
+            #       self.server.send(self.encode_msg(ans), ip, p)
         except Exception as e:
             logger.put(LoggingEntryType.SP, utils.get_local_ip(), ['Unexpected termination:', e])
     
@@ -271,8 +287,8 @@ def main() -> None:
 
     #Config
     config_file = extract_flag("-c")
+    global server
     server = Server(resolver, config_file)
-
     server.run()
 
 if __name__ == "__main__":
