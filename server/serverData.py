@@ -73,8 +73,11 @@ class ServerData:
                 for line in file.readlines():
                     self.__parseLine__(line.rstrip('\n'))
                     
-                if self.loggers == []:
+                if len(self.loggers) == 0:
                     raise InvalidConfigFileException("No global log files specified")
+                
+                if len(self.topServers) == 0:
+                    raise InvalidConfigFileException("No top servers specified")
                 
                 #reorder domains to the correct order (from higher to lower in the hierarchy)
                 self.domains = utils.order_dict(self.domains, lambda d: len(utils.split_domain(d)))

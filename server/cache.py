@@ -36,7 +36,8 @@ class Cache:
         """
         Constructs an empty cache
         """
-        self.lines = []
+        self.lines:list[CacheLine] = []
+        self.negative:dict[QueryInfo,float] = {}
         
     def add_entry(self, dnsEntry:DNSEntry) -> None:
         """
@@ -50,14 +51,22 @@ class Cache:
         Returns a QueryResponse
         """
         cur_time = time.time()
+        
+        if query in self.negative:
+            if self.negative[query] < cur_time:
+                return QueryResponse([],[],[],True)
+            else:
+                del self.negative[query]
+        
         self.lines = list(filter(lambda l: l.limitDate < cur_time, self.lines))
         return QueryResponse.from_entries(query, [l.dnsEntry for l in self.lines])
     
-    def add_response(self, response:QueryResponse) -> None:
+    def add_response(self, query:QueryInfo, response:QueryResponse) -> None:
         """
         Adds all DNSEntry's in the given response to the cache
         """
         for entry in itertools.chain(response.values, response.authorities, response.extra_values):
             self.add_entry(entry)
             
-        #TODO: negative caching
+        if response.isFinal() and len(response.values) == 0:
+            self.negative[query] = time.time() + 60
