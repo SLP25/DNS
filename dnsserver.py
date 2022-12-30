@@ -36,7 +36,6 @@ def processMessage(id:int, sendQueue : Queue, receiveQueue : Queue, msg: bytes, 
     global tag
     tag = id
     ans = server.process_message(msg, ip, p, sendQueue, receiveQueue)
-    print(ans)
     if ans:
         sendQueue.put((server.encode_msg(ans),ip,p, False), block=False)
 
@@ -90,7 +89,6 @@ class Server:
         Queries the dns server in address with the given query
         Returns the QueryResponse, or None if the request timed out or response failed to parse
         """
-        print("HELLO")
         ip, port = utils.decompose_address(address)
         #udp = UDP(timeout=timeout)
         msg = DNSMessage.from_query(query, recursive)
@@ -99,12 +97,8 @@ class Server:
 
         try:
             global tag
-            print(f"MM {tag}")
-            data = sq.put((self.encode_msg(msg), ip, port, tag))#self.encode_msg(msg)
-            print("AQUI: " + ip)
-            #udp.send(data, ip, port)
-            bytes, _, _ = rq.get() #udp.receive()
-            print("RECEIVED")
+            data = sq.put((self.encode_msg(msg), ip, port, tag))
+            bytes, _, _ = rq.get()
         except socket.timeout:
             logger.put(LogMessage(LoggingEntryType.TO, address, ['DNS query timed out'],query.name))
             return None
@@ -126,7 +120,6 @@ class Server:
         Queries the dns servers listed in addresses with the given query
         Returns the QueryResponse of the first answer, or None if none answered
         """
-        print("MEMBRO")
         for a in addresses:
             ans = self.query(a, query, recursive, sq, rq)
 
@@ -154,14 +147,14 @@ class Server:
         ans = self.cache.answer_query(query)    #try cache
         if ans.isFinal():
             return ans
-        print("OLA")
+
         if not recursive:   #give up :)
             return QueryResponse.from_top_servers(self.config.get_first_servers(query.name))
-        print("AH NO")
+        
         #start search from the root/default servers
         next_dns:list[str] = self.config.get_first_servers(query.name)
         prev_ans:Optional[QueryResponse] = None
-        print(next_dns)
+
         while True:
             ans = self.query_any(next_dns, query, recursive, sq, rq)
             if not ans:   

@@ -189,7 +189,8 @@ class DNSMessage:
         if ans.messageID < 1 or ans.messageID > 65356:
             raise InvalidDNSMessageException(f"messageID ({ans.messageID}) must be between 0 and 65356.")
         
-        flag_q, flag_r, flag_a = __read_flags__(match.group('flags'))
+        flag_str = match.group('flags')
+        flag_q, flag_r, flag_a = __read_flags__(flag_str if flag_str else "")
         ans.query = QueryInfo(match.group('name'), EntryType[match.group('type')])
         body = str[match.end():]
         

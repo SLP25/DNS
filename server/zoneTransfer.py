@@ -120,7 +120,6 @@ def zoneTransferSPClient(serverData:ServerData, logger:Queue, conn:socket, addre
                 (d, response_packets) = processPacket(serverData, packet, address[0], domain)
                 if domain == None:
                     domain = d
-
             for response_packet in response_packets:
                 clientConnected.write(encode_packet(response_packet))
 
@@ -231,7 +230,6 @@ def getAllEntries(tcpSocket:socket, domain:Domain, entries:int) -> None:
         data = tcpSocket.read()
         receivedPacket = decode_packet(data)
         
-
         order = int(receivedPacket.data[0])
         entry = receivedPacket.data[1]
 
@@ -280,6 +278,7 @@ def zoneTransferSS(serverData:ServerData, logger:Queue, domain_name:str) -> None
             tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tcp.connect(utils.decompose_address(domain.primaryServer))
             tcpSocket = TCPWrapper(tcp, ZoneTransferPacket.split_messages, maxSize)
+            
             versionNumber = getServerVersionNumber(tcpSocket, domain.name)
 
             #There is no new version of the database available
@@ -287,9 +286,11 @@ def zoneTransferSS(serverData:ServerData, logger:Queue, domain_name:str) -> None
                 numberEntries = getDomainNumberEntries(tcpSocket, domain.name)
                 acknowledgeNumberEntries(tcpSocket, domain.name, numberEntries)
                 getAllEntries(tcpSocket, domain, numberEntries)
+
             #TODO: Add bytes transferred and time elapsed/serial number
             logger.put(LogMessage(LoggingEntryType.ZT, domain.primaryServer, \
                 ["SS"], domain_name))
+            serverData.set_domain(domain.name, domain)
         except Exception as e:
             logger.put(LogMessage(LoggingEntryType.EZ, domain.primaryServer, \
                 ["SS:", e], domain_name))

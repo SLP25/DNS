@@ -240,5 +240,4 @@ class ZoneTransferPacket:
 
             return ZoneTransferPacket(sequenceNumber, status, domain, data), pos
         except:
-            print(traceback.format_exc())
             raise InvalidZoneTransferPacketException("Error parsing zone transfer packet")
