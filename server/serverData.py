@@ -105,23 +105,26 @@ class ServerData:
         self.get_domain(domain, False).set_entries(new_entries)
         
         
-    def get_first_servers(self, domain_name:str) -> list[str]:
+    def get_first_servers(self, domain_name:str) -> QueryResponse:
         """
         Determines the first servers to ask if a query can't be answered locally. This is
         the top servers if no default domain is set, or the default server if it is
-        Returns a list of ip addresses
+        Returns a query response with the relevant information in the authorities and extra values fields
         
         Arguments:
             domain_name -> A valid domain name (matches DOMAIN or FULL_DOMAIN). Case and termination insensitive
         """
         matches = filter(lambda d: d != '127.0.0.1' and utils.is_subdomain(domain_name, d), self.defaultServers)
+        domain = next(matches, None)
 
-        name = next(matches, None)
-
-        if name:
-            return [self.defaultServers[name]]
+        if domain:
+            dd_address = self.defaultServers[domain]
+            dd_name = f"ns.{domain}"
+            ttl = 1000000000
+            return QueryResponse([], [DNSEntry(domain, EntryType.NS, dd_name, ttl)], \
+                                     [DNSEntry(dd_name, EntryType.A, dd_address, ttl)])
         else:
-            return self.topServers
+            return QueryResponse.from_top_servers(self.topServers)
         
     def answers_query(self, d:str) -> bool:
         """

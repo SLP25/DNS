@@ -149,14 +149,19 @@ class Server:
             return ans
 
         if not recursive:   #give up :)
-            return QueryResponse.from_top_servers(self.config.get_first_servers(query.name))
+            return self.config.get_first_servers(query.name)
         
         #start search from the root/default servers
-        next_dns:list[str] = self.config.get_first_servers(query.name)
-        prev_ans:Optional[QueryResponse] = None
+        prev_ans:QueryResponse = self.config.get_first_servers(query.name)
 
         while True:
-            ans = self.query_any(next_dns, query, recursive, sq, rq)
+            #Query wasn't successful yet, so the next step is to contact the next dns in the hierarchy
+            #First, order received authorities from least to most specific (assume all of them match)
+            prev_ans.authorities.sort(key=lambda e: len(utils.split_domain(e.parameter)))
+            auths:list[str] = [e.value for e in prev_ans.authorities]               #next, get the hostname of their dns
+            next_dns = utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
+            
+            ans:Optional[QueryResponse] = self.query_any(next_dns, query, recursive, sq, rq)
             if not ans:   
                 #can't contact anyone :(
                 return prev_ans
@@ -167,12 +172,6 @@ class Server:
                 return ans
 
             prev_ans = ans  #store previous answer
-
-            #Query wasn't successful yet, so the next step is to contact the next dns in the hierarchy
-            #First, order received authorities from least to most specific (assume all of them match)
-            ans.authorities.sort(key=lambda e: len(utils.split_domain(e.parameter)))
-            auths = [e.value for e in ans.authorities]                              #next, get the hostname of their dns
-            next_dns = utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
 
     def process_message(self, message:bytes, ip:str, port:int, sq, rq) -> Optional[DNSMessage]:
         '''
