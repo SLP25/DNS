@@ -74,6 +74,7 @@ class EntryType(Enum):
             value = value.lower()
         elif self == EntryType.A:
             if not re.search(f'^{utils.IP_ADDRESS}$', value):
+
                 raise InvalidDNSEntryException(f'{value} is not a valid IPv4 address')
         elif self == EntryType.SOAADMIN:
             if not re.search(f'^{utils.EMAIL_ADDRESS}$', value):
@@ -118,19 +119,18 @@ class DNSEntry:
         ttl       : int         -> unsigned
         priority  : int/None    -> between 0 and 255. If None is passed, the default value 0 is used
         """
-        
         if ttl < 0:
             raise InvalidDNSEntryException(f"TTL ({ttl}) must be non-negative")
-        
+
         if priority != None and not type.supports_priority():
             raise InvalidDNSEntryException(f"DNS EntryType {type} doesn't support priority")
-        
+
         if priority == None and type.supports_priority():
             priority = 0
             
         if priority != None and (priority < 0 or priority > 255):
             raise InvalidDNSEntryException(f"Priority {priority} must be between 0 and 255")
-        
+
         self.parameter = type.validate_parameter(parameter)
         self.type = type
         self.value = type.validate_value(value)

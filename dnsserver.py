@@ -166,7 +166,7 @@ class Server:
                 #can't contact anyone :(
                 return prev_ans
 
-            self.cache.add_response(ans)
+            #self.cache.add_response(ans)
 
             if ans.isFinal():  #success!
                 return ans
@@ -201,6 +201,7 @@ class Server:
         logger.put(LogMessage(LoggingEntryType.QE, address, [msg], msg.query.name))
 
         ans = self.answer_query(msg.query, msg.recursive and self.supports_recursive, sq, rq)
+
         if ans:
             resp = msg.generate_response(ans, self.supports_recursive)
             logger.put(LogMessage(LoggingEntryType.RP, address, [resp], msg.query.name))
