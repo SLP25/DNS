@@ -67,10 +67,9 @@ class Cache:
         """
         Adds all DNSEntry's in the given response to the cache
         """
-        print("OLAAAA")
         for entry in itertools.chain(response.values, response.authorities, response.extra_values):
             self.add_entry(entry)
-        print("Here")
+
         if query != None and response.isFinal() and len(response.values) == 0:
             try:
                 self.negative[query] = time.time() + 60

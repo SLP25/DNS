@@ -26,9 +26,8 @@ class Network:
     
     def __receive__(self):
         while True:
-            print("A")
             msg, ip, p = self.udp.receive()
-            print("B")
+            
             with self.lock:
                 if (ip,p) in self.table:
                     self.receiveQueues[self.table[(ip,p)]].put((msg,ip,p))
@@ -42,9 +41,8 @@ class Network:
         
     def __send__(self):
         while True:
-            print("Blocking Send")
             (message, ip, p, wait) = self.sendQueue.get()
-            print("Not blocking send")
+
             if message == None:
                 break
             

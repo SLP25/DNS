@@ -44,9 +44,8 @@ class UDP:
         ip      : String                    -> The ip address of the sender
         port    : int                       -> The port the massage was sent in
         """
-        print("HERE BLOCKING")
         bytesAddressPair = self.serverSocket.recvfrom(self.bufferSize)
-        print("HERE NOT BLOCKING")
+
         message = bytesAddressPair[0]
         ip, port = bytesAddressPair[1]
 
@@ -62,7 +61,4 @@ class UDP:
         ip      : String                    -> The ip address to send the message to
         port    : int                       -> The port the massage is to be sent through
         """
-        print("SEND 1")
-        print(port)
         self.serverSocket.sendto(message, (ip, port))
-        print("SEND 2")
