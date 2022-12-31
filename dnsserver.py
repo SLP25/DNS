@@ -94,17 +94,22 @@ class Server:
         msg = DNSMessage.from_query(query, recursive)
         
         logger.put(LogMessage(LoggingEntryType.QE, address, [msg],query.name))
-
+        print("Query")
         try:
             global tag
+            print("Send")
             data = sq.put((self.encode_msg(msg), ip, port, tag))
             bytes, _, _ = rq.get()
+            print("Receive")
         except socket.timeout:
             logger.put(LogMessage(LoggingEntryType.TO, address, ['DNS query timed out'],query.name))
             return None
 
         try:
+            print("DECODING")
             ans = self.decode_msg(bytes)
+            print("KABOOM")
+            print(ans)
             if ans.is_query():
                 logger.put(LogMessage(LoggingEntryType.ER, address, ["The received DNSMessage isn't a response: ", ans],query.name))
                 return None
@@ -120,7 +125,9 @@ class Server:
         Queries the dns servers listed in addresses with the given query
         Returns the QueryResponse of the first answer, or None if none answered
         """
+        print("any")
         for a in addresses:
+            print(a)
             ans = self.query(a, query, recursive, sq, rq)
 
             if ans:
@@ -140,12 +147,14 @@ class Server:
         Given a query and whether to run recursively, returns an
         answering QueryResponse or None if it isn't possible to answer
         """
+        print("RESPO")
         ans = self.config.answer_query(query)   #try database
         if ans.isFinal():
             return ans
 
         ans = self.cache.answer_query(query)    #try cache
         if ans.isFinal():
+            print("CACHE HIT")
             return ans
 
         if not recursive:   #give up :)
@@ -153,22 +162,29 @@ class Server:
         
         #start search from the root/default servers
         prev_ans:QueryResponse = self.config.get_first_servers(query.name)
-
+        print("MAD")
+        print(prev_ans)
+        self.cache.add_response(prev_ans)
+        print("SUS")
         while True:
+            print("AQUI")
             #Query wasn't successful yet, so the next step is to contact the next dns in the hierarchy
             #First, order received authorities from least to most specific (assume all of them match)
             prev_ans.authorities.sort(key=lambda e: len(utils.split_domain(e.parameter)))
+            print("AQUI2")
             auths:list[str] = [e.value for e in prev_ans.authorities]               #next, get the hostname of their dns
-            next_dns = utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
-            
+            print("AQUI3")
+            print([e.value for e in prev_ans.extra_values])
+            next_dns = [e.value for e in prev_ans.extra_values]#utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
             ans:Optional[QueryResponse] = self.query_any(next_dns, query, recursive, sq, rq)
+            print("Reply received")
             if not ans:   
                 #can't contact anyone :(
                 return prev_ans
 
-            #self.cache.add_response(ans)
-
+            print("Respondido")
             if ans.isFinal():  #success!
+                self.cache.add_response(ans, query)
                 return ans
 
             prev_ans = ans  #store previous answer

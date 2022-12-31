@@ -7,6 +7,8 @@ Last Modification: Added documentation
 Date of Modification: 14/11/2022 11:53
 """
 
+import traceback
+from typing import Optional
 import time
 import itertools
 from common.dnsEntry import DNSEntry
@@ -61,12 +63,16 @@ class Cache:
         self.lines = list(filter(lambda l: l.limitDate < cur_time, self.lines))
         return QueryResponse.from_entries(query, [l.dnsEntry for l in self.lines])
     
-    def add_response(self, query:QueryInfo, response:QueryResponse) -> None:
+    def add_response(self, response:QueryResponse, query:Optional[QueryInfo]=None) -> None:
         """
         Adds all DNSEntry's in the given response to the cache
         """
+        print("OLAAAA")
         for entry in itertools.chain(response.values, response.authorities, response.extra_values):
             self.add_entry(entry)
-            
-        if response.isFinal() and len(response.values) == 0:
-            self.negative[query] = time.time() + 60
+        print("Here")
+        if query != None and response.isFinal() and len(response.values) == 0:
+            try:
+                self.negative[query] = time.time() + 60
+            except:
+                print(traceback.format_exc())
