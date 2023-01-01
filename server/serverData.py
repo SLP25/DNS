@@ -147,9 +147,7 @@ class ServerData:
         matches = filter(lambda d: utils.is_subdomain(query.name, d.name), self.domains.values())
         
         for d in matches:
-            ans = d.answer_query(query)
-            if ans.isFinal():
-                return ans
+            return d.answer_query(query)
 
         return QueryResponse()
 

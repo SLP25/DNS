@@ -11,11 +11,14 @@ Date of Modification: 19/11/2022 18:11
 '''
 #TODO: Terminate on SIGINT/SIGTERM
 
+import itertools
 from multiprocessing import Process
 import multiprocessing
 from multiprocessing.managers import BaseManager
+from pprint import pprint
 import random
 import socket
+import traceback
 from typing import Iterable, Optional
 
 from common.logger import logger_process, LoggingEntryType,LogCreate,LogMessage
@@ -140,21 +143,23 @@ class Server:
         Given a query and whether to run recursively, returns an
         answering QueryResponse or None if it isn't possible to answer
         """
-        ans = self.config.answer_query(query)   #try database
-        if ans.isFinal():
-            return ans
-
-        ans = self.cache.answer_query(query)    #try cache
-        if ans.isFinal():
-            return ans
-
-        if not recursive:   #give up :)
-            return self.config.get_first_servers(query.name)
         
-        #start search from the root/default servers
-        prev_ans:QueryResponse = self.config.get_first_servers(query.name)
+        db_ans = self.config.answer_query(query)   #try database
+        if db_ans.isFinal():
+            return db_ans
+
+        cache_ans = self.cache.answer_query(query)    #try cache
+        if cache_ans.isFinal():
+            return cache_ans
         
+        #Calculate first servers (servers from which the response can be searched from)
+        first_ans = self.config.get_first_servers(query.name)
+        prev_ans = QueryResponse.from_entries_strict(query, \
+            list(itertools.chain(db_ans.all_entries(), cache_ans.all_entries(), first_ans.all_entries())))
         self.cache.add_response(prev_ans)
+        
+        if not recursive:   #give up :)
+            return prev_ans
         
         while True:
             #Query wasn't successful yet, so the next step is to contact the next dns in the hierarchy
