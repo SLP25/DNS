@@ -63,7 +63,7 @@ class QueryResponse:
         self.values = values
         self.authorities = authorities
         self.extra_values = extra_values
-        self.final = len(self.values) > 0#final or len(self.values) != 0  or len(self.authorities) != 0
+        self.final = final or len(self.values) > 0
         self.authoritative = authoritative
     
     @staticmethod
