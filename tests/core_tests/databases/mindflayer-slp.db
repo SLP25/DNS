@@ -15,8 +15,10 @@ TTL DEFAULT 60
 
 www A 10.0.12.11 TTL
 
-@ MX foretell TTL 10
-@ MX blue TTL 20
+exile CNAME foretell TTL
+
+mail MX foretell TTL 10
+mail MX blue TTL 20
 
 foretell A 10.0.12.16 TTL
 blue A 10.0.12.17 TTL

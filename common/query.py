@@ -119,7 +119,7 @@ class QueryResponse:
             auths = list(filter(lambda e: len(utils.split_domain(e.parameter)) >= best_match, all_auths.values()))
     
         extra_dom = set(__get_relevant_domains__(vals) + [e.value for e in auths]) #dump in set to remove duplicates
-        extras = list(utils.flat_map(lambda d: filter(lambda e: e.type == EntryType.A and e.parameter == d, entries), extra_dom))
+        extras = list(set(utils.flat_map(lambda d: filter(lambda e: e.type == EntryType.A and e.parameter == d, entries), extra_dom)))
 
         return QueryResponse(vals, auths, extras, final, authoritative)
     
