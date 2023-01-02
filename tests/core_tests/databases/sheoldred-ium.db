@@ -16,7 +16,7 @@ TTL DEFAULT 60
 
 www A 10.0.12.10 TTL
 
-graveyard CNAME black
+graveyard CNAME black TTL
 
 mail MX deathtouch TTL 1
 mail MX black TTL 2

@@ -15,20 +15,6 @@ from common.dnsEntry import DNSEntry
 from common.query import QueryInfo
 from common.query import QueryResponse
 
-
-class CacheLine:
-    """
-    Represents a line (minimum storing unit) of the cache
-    Each line has the following attributes:
-        dnsEntry    -> DNSEntry
-        limitDate   -> float (seconds after the epoch)
-    """
-    
-    def __init__(self, dnsEntry:DNSEntry, limitDate:float):
-        self.dnsEntry = dnsEntry
-        self.limitDate = limitDate
-        
-#TODO: hash tables/other optimizations?
 class Cache:
     """
     Stores DNSEntry's and answers queries using the still valid entries
@@ -38,14 +24,14 @@ class Cache:
         """
         Constructs an empty cache
         """
-        self.lines:list[CacheLine] = []
+        self.lines:dict[DNSEntry,float] = {}
         self.negative:dict[QueryInfo,float] = {}
         
     def add_entry(self, dnsEntry:DNSEntry) -> None:
         """
         Adds a DNSEntry to the cache
         """
-        self.lines.append(CacheLine(dnsEntry, time.time() + dnsEntry.ttl))
+        self.lines[dnsEntry] = time.time() + dnsEntry.ttl
         
     def answer_query(self, query:QueryInfo) -> QueryResponse:
         """
@@ -60,9 +46,14 @@ class Cache:
             else:
                 del self.negative[query]
 
-        self.lines = list(filter(lambda l: l.limitDate >= cur_time, self.lines))
+        items = {}
+        for k,v in self.lines.items():
+            if v >= cur_time:
+                items[k] = v
+        
+        self.lines = items
 
-        return QueryResponse.from_entries(query, [l.dnsEntry for l in self.lines])
+        return QueryResponse.from_entries(query, self.lines)
     
     def add_response(self, response:QueryResponse, query:Optional[QueryInfo]=None) -> None:
         """

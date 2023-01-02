@@ -23,7 +23,6 @@ from typing import Iterable, Optional
 
 from common.logger import logger_process, LoggingEntryType,LogCreate,LogMessage
 from multiprocessing import Queue,Process
-from server.network import Network
 from common.query import QueryResponse
 from server.cache import Cache
 from server.zoneTransfer import zoneTransferSP, zoneTransferSS
@@ -242,19 +241,12 @@ class Server:
 
         logger.put(LogMessage(LoggingEntryType.ST, utils.get_local_ip(), ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', utils.debug]))
         self.server = UDP(localPort=port,binding = True)
-        
-        
-        
-        #try:  
-        #    self.network = Network(port, True, processMessage)          
-        #    self.network.run()
+
         while(True):
            msg, ip, p = self.server.receive()
            t1 = Thread(target = self.answer_client, args=(msg,ip,p,))
            t1.start()
-           
-        #except Exception as e:
-        #    logger.put(LoggingEntryType.SP, utils.get_local_ip(), ['Unexpected termination:', e])
+      
     
 def extract_flag(flag:str) -> str:
     '''
