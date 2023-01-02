@@ -14,10 +14,10 @@ TTL DEFAULT 60
 @ SOAEXPIRE 40 TTL
 
 
-@ A 10.0.12.10 TTL
+www A 10.0.12.10 TTL
 
 @ MX deathtouch TTL 1
-@ MX black TTL
+@ MX black TTL 2
 
 deathtouch A 10.0.12.14 TTL
 black A 10.0.12.15 TTL

@@ -19,6 +19,7 @@ sheoldred NS ss1.sheoldred.ium. TTL 3
 
 connive CNAME mindflayer.slp TTL
 
+sheoldred CNAME www.sheoldred TTL
 
 sp.sheoldred.ium. A 10.2.2.3 TTL
 ss2.sheoldred.ium. A 10.2.2.2 TTL

@@ -19,8 +19,8 @@ mindflayer NS ss1.mindflayer.slp. TTL 3
 
 djinn CNAME sheoldred.batata TTL
 
+mindflayer A 10.0.12.11 TTL
+
 sp.mindflayer.slp. A 10.0.13.10 TTL
 ss1.mindflayer.slp. A 10.0.13.11 TTL
 ss2.mindflayer.slp. A 10.0.13.12 TTL
-
-@ A 10.0.12.12 TTL

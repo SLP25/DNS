@@ -53,14 +53,15 @@ class Cache:
         Returns a QueryResponse
         """
         cur_time = time.time()
-        
+
         if query in self.negative:
-            if self.negative[query] < cur_time:
+            if self.negative[query] >= cur_time:
                 return QueryResponse([],[],[],True)
             else:
                 del self.negative[query]
-        
-        self.lines = list(filter(lambda l: l.limitDate < cur_time, self.lines))
+
+        self.lines = list(filter(lambda l: l.limitDate >= cur_time, self.lines))
+
         return QueryResponse.from_entries(query, [l.dnsEntry for l in self.lines])
     
     def add_response(self, response:QueryResponse, query:Optional[QueryInfo]=None) -> None:

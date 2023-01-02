@@ -135,6 +135,9 @@ def split_domain(domain:str) -> list[str]:
     return ans
 
 
+def domain_depth(domain:str) -> int:
+    return len(split_domain(domain))
+    
 def is_subdomain(subdomain:str, domain:str) -> bool:
     """
     Given two valid domain names (that match DOMAIN or FULL_DOMAIN regexes),

@@ -162,9 +162,9 @@ class Server:
             first_ans = self.config.get_first_servers(query.name)
             prev_ans = QueryResponse.from_entries_strict(query, \
                 list(itertools.chain(db_ans.all_entries(), cache_ans.all_entries(), first_ans.all_entries())))
-            #self.cache.add_response(prev_ans)
+            self.cache.add_response(prev_ans)
             
-            if not recursive:   #give up :)
+            if not recursive:#give up :)
                 return prev_ans
             
             while True:
@@ -179,7 +179,7 @@ class Server:
                     return prev_ans
 
                 if ans.isFinal():  #success!
-                    #self.cache.add_response(ans, query)
+                    self.cache.add_response(ans, query)
                     return ans
 
                 prev_ans = ans  #store previous answer

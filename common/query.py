@@ -27,7 +27,14 @@ class QueryInfo:
             String: the string representation of the object
         """
         return f'{self.name},{self.type.name}'
+    
+    def __eq__(self, another) -> bool:
+        if another == None:
+            return False
+        return self.name == another.name and self.type == another.type
 
+    def __hash__(self):
+        return hash((self.name,self.type)) 
 
 def __get_relevant_domains__(entries:list[DNSEntry]) -> list[str]:
     """gets the values of SOASP,NS and MX entries
@@ -83,7 +90,7 @@ class QueryResponse:
         auths = list(all_auths.values())
         
         extra_dom = set(__get_relevant_domains__(vals) + [e.value for e in auths]) #dump in set to remove duplicates
-        extras = list(utils.flat_map(lambda d: filter(lambda e: e.type == EntryType.A and e.parameter == d, entries), extra_dom))
+        extras = list(set(utils.flat_map(lambda d: filter(lambda e: e.type == EntryType.A and e.parameter == d, entries), extra_dom)))
 
         return QueryResponse(vals, auths, extras, final, authoritative)
     
