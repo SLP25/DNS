@@ -71,7 +71,4 @@ class Cache:
             self.add_entry(entry)
 
         if query != None and response.isFinal() and len(response.values) == 0:
-            try:
-                self.negative[query] = time.time() + 60
-            except:
-                print(traceback.format_exc())
+            self.negative[query] = time.time() + 60

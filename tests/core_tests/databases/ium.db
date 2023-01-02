@@ -17,11 +17,11 @@ sheoldred NS sp.sheoldred.ium. TTL 1
 sheoldred NS ss2.sheoldred.ium. TTL 2
 sheoldred NS ss1.sheoldred.ium. TTL 3
 
-connive CNAME mindflayer.slp. TTL
+connive CNAME mindflayer.slp TTL
 
 
-sp.sheoldred.ium. A 10.2.2.3:4200 TTL
-ss2.sheoldred.ium. A 10.2.2.2:4200 TTL
-ss1.sheoldred.ium. A 10.2.2.1:4200 TTL
+sp.sheoldred.ium. A 10.2.2.3 TTL
+ss2.sheoldred.ium. A 10.2.2.2 TTL
+ss1.sheoldred.ium. A 10.2.2.1 TTL
 
 @ A 10.0.12.13 TTL

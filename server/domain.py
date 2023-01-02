@@ -77,12 +77,12 @@ class PrimaryDomain(Domain):
         if self.database == None:
             raise InvalidConfigFileException("No database file specified for primary domain " + self.name)
 
-    def answer_query(self, query:QueryInfo) -> QueryResponse:
+    def answer_query(self, query:QueryInfo, fullMatch: bool = False) -> QueryResponse:
         """
         Answers the given query by querying the database
         Returns a QueryResponse
         """
-        return self.database.answer_query(query)
+        return self.database.answer_query(query, fullMatch)
 
 class SecondaryDomain(Domain):
     """
@@ -167,14 +167,14 @@ class SecondaryDomain(Domain):
                 self.serial = int(e.value)
     
     #TODO: Thread safety
-    def answer_query(self, query:QueryInfo) -> QueryResponse: #TODO: invalidate entries after SOAEXPIRE seconds
+    def answer_query(self, query:QueryInfo, fullMatch:bool = False) -> QueryResponse: #TODO: invalidate entries after SOAEXPIRE seconds
         """
         Answers the given query by searching the list of entries
         Returns a QueryResponse
         """
         hostname = self.__replace_aliases__(query.name)
         query = QueryInfo(hostname, query.type)
-        return QueryResponse.from_entries(query, self.dnsEntries, True, False)
+        return QueryResponse.from_entries(query, self.dnsEntries, fullMatch, False)
     
     def __replace_aliases__(self, domain:str) -> str:
         for k,v in self.aliases.items():

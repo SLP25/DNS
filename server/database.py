@@ -109,10 +109,10 @@ class Database:
         if ans.type == EntryType.SOASERIAL:
             self.serial = int(ans.value)
     
-    def answer_query(self, query:QueryInfo) -> QueryResponse:
+    def answer_query(self, query:QueryInfo, fullMatch: bool = False) -> QueryResponse:
         """
         Answers the query with the available DNSEntry's
         Returns a QueryResponse
         """
         hostname = self.__replace_aliases__(query.name)
-        return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.entries, True, True)
+        return QueryResponse.from_entries(QueryInfo(hostname, query.type), self.entries, fullMatch, True)

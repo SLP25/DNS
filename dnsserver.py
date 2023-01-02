@@ -33,14 +33,19 @@ from common.dnsMessage import DNSMessage, QueryInfo
 from server.serverData import ServerData
 import common.utils as utils
 import sys
+from threading import Thread
 
 def processMessage(id:int, sendQueue : Queue, receiveQueue : Queue, msg: bytes, ip:str, p:int):
-    global server
-    global tag
-    tag = id
-    ans = server.process_message(msg, ip, p, sendQueue, receiveQueue)
-    if ans:
-        sendQueue.put((server.encode_msg(ans),ip,p, False), block=False)
+    try:
+        global server
+        global tag
+        tag = id
+        ans = server.process_message(msg, ip, p, sendQueue, receiveQueue)
+        if ans:
+            sendQueue.put((server.encode_msg(ans),ip,p, False), block=False)
+    except Exception as e:
+        print(e)
+        print(traceback.format_exc())
 
 class MyManager(BaseManager):
     pass
@@ -93,15 +98,15 @@ class Server:
         Returns the QueryResponse, or None if the request timed out or response failed to parse
         """
         ip, port = utils.decompose_address(address)
-        #udp = UDP(timeout=timeout)
+        udp = UDP(timeout=timeout)
         msg = DNSMessage.from_query(query, recursive)
         
         logger.put(LogMessage(LoggingEntryType.QE, address, [msg],query.name))
 
         try:
             global tag
-            data = sq.put((self.encode_msg(msg), ip, port, tag))
-            bytes, _, _ = rq.get()
+            data = udp.send(self.encode_msg(msg), ip, port)#sq.put((self.encode_msg(msg), ip, port, tag))
+            bytes, _, _ = udp.receive()#rq.get()
         except socket.timeout:
             logger.put(LogMessage(LoggingEntryType.TO, address, ['DNS query timed out'],query.name))
             return None
@@ -143,41 +148,45 @@ class Server:
         Given a query and whether to run recursively, returns an
         answering QueryResponse or None if it isn't possible to answer
         """
-        
-        db_ans = self.config.answer_query(query)   #try database
-        if db_ans.isFinal():
-            return db_ans
 
-        cache_ans = self.cache.answer_query(query)    #try cache
-        if cache_ans.isFinal():
-            return cache_ans
-        
-        #Calculate first servers (servers from which the response can be searched from)
-        first_ans = self.config.get_first_servers(query.name)
-        prev_ans = QueryResponse.from_entries_strict(query, \
-            list(itertools.chain(db_ans.all_entries(), cache_ans.all_entries(), first_ans.all_entries())))
-        self.cache.add_response(prev_ans)
-        
-        if not recursive:   #give up :)
-            return prev_ans
-        
-        while True:
-            #Query wasn't successful yet, so the next step is to contact the next dns in the hierarchy
-            #First, order received authorities from least to most specific (assume all of them match)
-            prev_ans.authorities.sort(key=lambda e: len(utils.split_domain(e.parameter)))
-            auths:list[str] = [e.value for e in prev_ans.authorities]               #next, get the hostname of their dns
-            next_dns = [e.value for e in prev_ans.extra_values]#utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
-            ans:Optional[QueryResponse] = self.query_any(next_dns, query, recursive, sq, rq)
+        try:
+            db_ans = self.config.answer_query(query)   #try database
+            if db_ans.isFinal():
+                return db_ans
 
-            if not ans:   
-                #can't contact anyone :(
+            cache_ans = self.cache.answer_query(query)    #try cache
+            if cache_ans.isFinal():
+                return cache_ans
+            
+            #Calculate first servers (servers from which the response can be searched from)
+            first_ans = self.config.get_first_servers(query.name)
+            prev_ans = QueryResponse.from_entries_strict(query, \
+                list(itertools.chain(db_ans.all_entries(), cache_ans.all_entries(), first_ans.all_entries())))
+            #self.cache.add_response(prev_ans)
+            
+            if not recursive:   #give up :)
                 return prev_ans
+            
+            while True:
+                #Query wasn't successful yet, so the next step is to contact the next dns in the hierarchy
+                #First, order received authorities from least to most specific (assume all of them match)
+                prev_ans.authorities.sort(key=lambda e: len(utils.split_domain(e.parameter)))
+                auths:list[str] = [e.value for e in prev_ans.authorities]               #next, get the hostname of their dns
+                next_dns = [e.value for e in prev_ans.extra_values]#utils.flat_map(lambda dns: self.resolve_address(dns), auths) #lazily fetch address for each one
+                ans:Optional[QueryResponse] = self.query_any(next_dns, query, recursive, sq, rq)
+                if not ans:   
+                    #can't contact anyone :(
+                    return prev_ans
 
-            if ans.isFinal():  #success!
-                self.cache.add_response(ans, query)
-                return ans
+                if ans.isFinal():  #success!
+                    #self.cache.add_response(ans, query)
+                    return ans
 
-            prev_ans = ans  #store previous answer
+                prev_ans = ans  #store previous answer
+
+        except Exception as e:
+            print(e)
+            print(traceback.format_exc())
 
     def process_message(self, message:bytes, ip:str, port:int, sq, rq) -> Optional[DNSMessage]:
         '''
@@ -213,6 +222,12 @@ class Server:
             logger.put(LogMessage(LoggingEntryType.RP, address, [resp], msg.query.name))
             return resp
 
+    def answer_client(self, msg, ip, p):
+        ans = self.process_message(msg, ip, p, None, None)
+        if ans:
+            udp = UDP(timeout=timeout)
+            udp.send(self.encode_msg(ans), ip, p)
+            
     def run(self) -> None:
         procs = []
         #Add the single SP zone transfer process to the list
@@ -226,17 +241,20 @@ class Server:
 
 
         logger.put(LogMessage(LoggingEntryType.ST, utils.get_local_ip(), ['port:', port, 'timeout(ms):', timeout * 1000, 'debug:', utils.debug]))
-        #self.server = UDP(localPort=port,binding = True)
-        try:  
-            self.network = Network(port, True, processMessage)          
-            self.network.run()
-            #while(True):
-            #    msg, ip, p = self.server.receive()
-            #    ans = self.process_message(msg, ip, p)
-            #    if ans:
-            #       self.server.send(self.encode_msg(ans), ip, p)
-        except Exception as e:
-            logger.put(LoggingEntryType.SP, utils.get_local_ip(), ['Unexpected termination:', e])
+        self.server = UDP(localPort=port,binding = True)
+        
+        
+        
+        #try:  
+        #    self.network = Network(port, True, processMessage)          
+        #    self.network.run()
+        while(True):
+           msg, ip, p = self.server.receive()
+           t1 = Thread(target = self.answer_client, args=(msg,ip,p,))
+           t1.start()
+           
+        #except Exception as e:
+        #    logger.put(LoggingEntryType.SP, utils.get_local_ip(), ['Unexpected termination:', e])
     
 def extract_flag(flag:str) -> str:
     '''
